@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
@@ -50,7 +50,7 @@
         .input-qty { width: 45px; text-align: center; border: none; background: transparent; font-size: 13px; font-weight: 700; }
 
         /* Nav & Cart Bars */
-        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-around; padding: 10px 0; border-top: 1px solid #e5e7eb; z-index: 100; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #e5e7eb; z-index: 100; }
         .nav-item { text-align: center; font-size: 11px; color: #6b7280; cursor: pointer; width: 33%; }
         .nav-item.active { color: #1e3c72; font-weight: bold; }
 
@@ -94,7 +94,7 @@
 
     <header>
         <h1>XorazmOptom</h1>
-        <div class="user-badge" id="headerUser">Кириш</div>
+        <div class="user-badge" id="headerUser" onclick="logout()" style="cursor:pointer;">Кириш</div>
     </header>
 
     <div class="container">
@@ -257,11 +257,21 @@
         let products = JSON.parse(localStorage.getItem('xorazm_products')) || defaultProducts;
         let allOrders = JSON.parse(localStorage.getItem('xorazm_orders')) || [];
 
-        let currentUser = null;
+        let currentUser = JSON.parse(localStorage.getItem('xorazm_user')) || null;
         let isAdmin = false;
         let cart = {};
         let bannerSlideIndex = 0;
         let bannerTimer = null;
+
+        window.onload = function() {
+            if (currentUser) {
+                if (currentUser.phone === 'XorazmOptomAdmin') {
+                    isAdmin = true;
+                    document.getElementById('navAdmin').style.display = 'block';
+                }
+                showAppUI();
+            }
+        };
 
         function saveToStorage() {
             localStorage.setItem('xorazm_products', JSON.stringify(products));
@@ -286,6 +296,18 @@
                 currentUser = { name: name, phone: phone };
             }
 
+            localStorage.setItem('xorazm_user', JSON.stringify(currentUser));
+            showAppUI();
+        }
+
+        function logout() {
+            if (confirm('Tizimdan chiqmoqchimisiz?')) {
+                localStorage.removeItem('xorazm_user');
+                location.reload();
+            }
+        }
+
+        function showAppUI() {
             document.getElementById('headerUser').innerText = currentUser.name;
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('shopScreen').style.display = 'block';
@@ -295,6 +317,29 @@
             renderBanners();
             renderCategories();
             renderProducts();
+
+            if (window.listenToOrders) {
+                window.listenToOrders(function(data) {
+                    if (data) {
+                        let firebaseOrders = [];
+                        for (let id in data) {
+                            firebaseOrders.push({
+                                id: id,
+                                user: data[id].customerName || 'Noma\'lum',
+                                phone: data[id].phone || '',
+                                date: data[id].date || '',
+                                items: data[id].items || [],
+                                total: data[id].totalAmount || 0,
+                                status: data[id].status || 'Kutilmoqda'
+                            });
+                        }
+                        allOrders = firebaseOrders;
+                        saveToStorage();
+                        renderUserOrders();
+                        if (isAdmin) renderAdminOrders();
+                    }
+                });
+            }
         }
 
         /* BANNER MANAGEMENT */
@@ -592,18 +637,25 @@
             }
             if(items.length === 0) { alert('Сават бўш!'); return; }
 
-            const order = {
-                id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
-                user: currentUser.name,
-                phone: currentUser.phone,
-                date: new Date().toLocaleDateString('uz-UZ'),
-                items: items,
-                total: total,
-                status: 'Kutilmoqda'
-            };
+            const orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
+            const orderDate = new Date().toLocaleDateString('uz-UZ');
 
-            allOrders.unshift(order);
-            saveToStorage();
+            if (window.createOrder) {
+                window.createOrder(orderId, currentUser.name, currentUser.phone, orderDate, items, total);
+            } else {
+                const order = {
+                    id: orderId,
+                    user: currentUser.name,
+                    phone: currentUser.phone,
+                    date: orderDate,
+                    items: items,
+                    total: total,
+                    status: 'Kutilmoqda'
+                };
+                allOrders.unshift(order);
+                saveToStorage();
+            }
+
             cart = {};
             closeModal('cartModal');
             renderProducts();
@@ -613,11 +665,15 @@
         }
 
         function changeOrderStatus(orderId, newStatus) {
-            const order = allOrders.find(o => o.id === orderId);
-            if(order) {
-                order.status = newStatus;
-                saveToStorage();
-                renderAdminOrders();
+            if (window.updateOrderStatus) {
+                window.updateOrderStatus(orderId, newStatus);
+            } else {
+                const order = allOrders.find(o => o.id === orderId);
+                if(order) {
+                    order.status = newStatus;
+                    saveToStorage();
+                    renderAdminOrders();
+                }
             }
         }
 
@@ -689,50 +745,51 @@
             `).join('');
         }
     </script>
+
     <!-- Firebase Realtime Database XorazmOptom -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+      import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBY9JPfML0PPX5jyxKqC_Ox9GXVeqYIcEE",
-    authDomain: "xorazmoptom.firebaseapp.com",
-    databaseURL: "https://xorazmoptom-default-rtdb.firebaseio.com",
-    projectId: "xorazmoptom",
-    storageBucket: "xorazmoptom.firebasestorage.app",
-    messagingSenderId: "222166213700",
-    appId: "1:222166213700:web:6094668aa657b424374811"
-  };
+      const firebaseConfig = {
+        apiKey: "AIzaSyBY9JPfML0PPX5jyxKqC_Ox9GXVeqYIcEE",
+        authDomain: "xorazmoptom.firebaseapp.com",
+        databaseURL: "https://xorazmoptom-default-rtdb.firebaseio.com",
+        projectId: "xorazmoptom",
+        storageBucket: "xorazmoptom.firebasestorage.app",
+        messagingSenderId: "222166213700",
+        appId: "1:222166213700:web:6094668aa657b424374811"
+      };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
 
-  // Real-vaqt funksiyalari
-  window.createOrder = function(orderId, customerName, items, totalAmount) {
-    set(ref(db, 'orders/' + orderId), {
-      customerName: customerName,
-      items: items,
-      totalAmount: totalAmount,
-      status: 'Pending',
-      timestamp: Date.now()
-    });
-  };
+      window.createOrder = function(orderId, customerName, phone, date, items, totalAmount) {
+        set(ref(db, 'orders/' + orderId), {
+          customerName: customerName,
+          phone: phone,
+          date: date,
+          items: items,
+          totalAmount: totalAmount,
+          status: 'Kutilmoqda',
+          timestamp: Date.now()
+        });
+      };
 
-  window.updateOrderStatus = function(orderId, newStatus) {
-    update(ref(db, 'orders/' + orderId), {
-      status: newStatus
-    });
-  };
+      window.updateOrderStatus = function(orderId, newStatus) {
+        update(ref(db, 'orders/' + orderId), {
+          status: newStatus
+        });
+      };
 
-  window.listenToOrders = function(callback) {
-    const ordersRef = ref(db, 'orders/');
-    onValue(ordersRef, (snapshot) => {
-      const data = snapshot.val();
-      if (callback) callback(data);
-    });
-  };
-</script>
-
+      window.listenToOrders = function(callback) {
+        const ordersRef = ref(db, 'orders/');
+        onValue(ordersRef, (snapshot) => {
+          const data = snapshot.val();
+          if (callback) callback(data);
+        });
+      };
+    </script>
 </body>
 </html>
-
+                            
