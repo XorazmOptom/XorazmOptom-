@@ -689,6 +689,50 @@
             `).join('');
         }
     </script>
+    <!-- Firebase Realtime Database XorazmOptom -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBY9JPfML0PPX5jyxKqC_Ox9GXVeqYIcEE",
+    authDomain: "xorazmoptom.firebaseapp.com",
+    databaseURL: "https://xorazmoptom-default-rtdb.firebaseio.com",
+    projectId: "xorazmoptom",
+    storageBucket: "xorazmoptom.firebasestorage.app",
+    messagingSenderId: "222166213700",
+    appId: "1:222166213700:web:6094668aa657b424374811"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Real-vaqt funksiyalari
+  window.createOrder = function(orderId, customerName, items, totalAmount) {
+    set(ref(db, 'orders/' + orderId), {
+      customerName: customerName,
+      items: items,
+      totalAmount: totalAmount,
+      status: 'Pending',
+      timestamp: Date.now()
+    });
+  };
+
+  window.updateOrderStatus = function(orderId, newStatus) {
+    update(ref(db, 'orders/' + orderId), {
+      status: newStatus
+    });
+  };
+
+  window.listenToOrders = function(callback) {
+    const ordersRef = ref(db, 'orders/');
+    onValue(ordersRef, (snapshot) => {
+      const data = snapshot.val();
+      if (callback) callback(data);
+    });
+  };
+</script>
+
 </body>
 </html>
 
