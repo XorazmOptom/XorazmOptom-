@@ -1,4 +1,4 @@
-        <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
@@ -125,13 +125,13 @@
             <div class="grid" id="productList"></div>
         </div>
 
-        <!-- АДМИН ПАНЕЛ (РЕЙТИНГ ВА БОШҚАРУВ БУ YERDA) -->
+        <!-- АДМИН ПАНЕЛ -->
         <div id="adminScreen" style="display:none;">
             
             <!-- ФАOL ХАРИДОРЛАР ВА СОВҒАLAR РЕЙТИНГИ (ФАҚАТ АДМИН УЧУН) -->
             <div class="admin-section">
                 <div class="admin-sec-title">🏆 Энг кўп савдо қилган харидорлар рейтинги (Sovg'alar uchun)</div>
-                <div style="font-size:12px; color:#4b5563; margin-bottom:10px;">Бу рўйхат харидорларга кўринмайdi. Қaysi дўкон кўп харид қилгани сумма бўйича автоматик саraladi:</div>
+                <div style="font-size:12px; color:#4b5563; margin-bottom:10px;">Бу рўйхат харидорларга кўринмайди. Қaysi дўкон кўп харид қилгани сумма бўйича автоматик саraladi:</div>
                 <div id="adminBuyerRatingList"></div>
             </div>
 
@@ -242,7 +242,7 @@
         <button class="btn-order" onclick="event.stopPropagation(); openCartModal();">Саватни очиш</button>
     </div>
 
-    <!-- Навигация (Хaridorlar uchun faqat 3 ta bo'lim: Katalog, Kabinet va Admin) -->
+    <!-- Навигация -->
     <div class="nav-bar" id="navBar" style="display:none;">
         <div class="nav-item active" id="navCatalog" onclick="switchTab('catalog')">🛒 Каталог</div>
         <div class="nav-item" id="navUserCabinet" onclick="switchTab('cabinet')">👤 Кабинет</div>
@@ -255,19 +255,9 @@
         let tempMultipleImages = [];
         let activeModalProdId = null;
 
-        let defaultBanners = [
-            "https://images.unsplash.com/photo-1584813470613-5b1c1cad3d69?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=800&q=80"
-        ];
-
-        let defaultProducts = [
-            { id: 1, category: "Маиший кимё", title: "Shengbolan Кир ювиш воситаси", desc: "3000 ml. Махсус B2B формула.", p1: 53000, p5: 50000, p10: 47000, images: ["https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=500&q=80"] },
-            { id: 2, category: "Маиший кимё", title: "Shengbolan AIX Тозаловчи", desc: "1200 ml. Ошхона тозалагич.", p1: 18000, p5: 17000, p10: 16000, images: ["https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=500&q=80"] }
-        ];
-
-        let banners = JSON.parse(localStorage.getItem('xorazm_banners')) || defaultBanners;
-        let products = JSON.parse(localStorage.getItem('xorazm_products')) || defaultProducts;
-        let allOrders = JSON.parse(localStorage.getItem('xorazm_orders')) || [];
+        let banners = [];
+        let products = [];
+        let allOrders = [];
 
         let currentUser = JSON.parse(localStorage.getItem('xorazm_user')) || null;
         let isAdmin = false;
@@ -287,12 +277,6 @@
                 showAppUI();
             }
         };
-
-        function saveToStorage() {
-            localStorage.setItem('xorazm_products', JSON.stringify(products));
-            localStorage.setItem('xorazm_orders', JSON.stringify(allOrders));
-            localStorage.setItem('xorazm_banners', JSON.stringify(banners));
-        }
 
         function login() {
             const name = document.getElementById('shopName').value.trim();
@@ -329,40 +313,12 @@
             document.getElementById('cartBar').style.display = 'flex';
             document.getElementById('navBar').style.display = 'flex';
             
-            renderBanners();
             renderCategories();
-            renderProducts();
-
-            if (window.listenToOrders) {
-                window.listenToOrders(function(data) {
-                    if (data) {
-                        let firebaseOrders = [];
-                        for (let id in data) {
-                            firebaseOrders.push({
-                                id: id,
-                                user: data[id].customerName || 'Noma\'lum',
-                                phone: data[id].phone || '',
-                                date: data[id].date || '',
-                                items: data[id].items || [],
-                                total: data[id].totalAmount || 0,
-                                status: data[id].status || 'Kutilmoqda'
-                            });
-                        }
-                        allOrders = firebaseOrders;
-                        saveToStorage();
-                        renderUserOrders();
-                        if (isAdmin) {
-                            renderAdminOrders();
-                            renderAdminBuyerRating();
-                        }
-                    }
-                });
-            }
         }
 
         function renderBanners() {
             const container = document.getElementById('carouselBox');
-            if(banners.length === 0) {
+            if(!banners || banners.length === 0) {
                 container.style.display = 'none';
                 return;
             }
@@ -405,10 +361,11 @@
             if(input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    banners.unshift(e.target.result);
-                    saveToStorage();
-                    renderBanners();
-                    renderAdminBannerList();
+                    let newBanners = [...banners];
+                    newBanners.unshift(e.target.result);
+                    if (window.saveBannersToFirebase) {
+                        window.saveBannersToFirebase(newBanners);
+                    }
                     alert('Янги реклама баннери муваффақиятли қўшилди!');
                     input.value = '';
                 };
@@ -418,16 +375,17 @@
 
         function deleteBanner(index) {
             if(confirm('Ушбу баннерни ўчириб ташламоқчимисиз?')) {
-                banners.splice(index, 1);
-                saveToStorage();
-                renderBanners();
-                renderAdminBannerList();
+                let newBanners = [...banners];
+                newBanners.splice(index, 1);
+                if (window.saveBannersToFirebase) {
+                    window.saveBannersToFirebase(newBanners);
+                }
             }
         }
 
         function renderAdminBannerList() {
             const container = document.getElementById('adminBannerList');
-            if(banners.length === 0) {
+            if(!banners || banners.length === 0) {
                 container.innerHTML = '<div style="font-size:12px; color:#6b7280;">Баннерлар йўқ</div>';
                 return;
             }
@@ -648,8 +606,10 @@
                 images: tempMultipleImages
             };
 
-            products.unshift(newProd);
-            saveToStorage();
+            let newProductsList = [newProd, ...products];
+            if (window.saveProductsToFirebase) {
+                window.saveProductsToFirebase(newProductsList);
+            }
 
             document.getElementById('newTitle').value = "";
             document.getElementById('price1').value = "";
@@ -661,15 +621,15 @@
             tempMultipleImages = [];
 
             alert('Маҳсулот оптом нархлари билан қўшилди!');
-            renderProducts();
             switchTab('catalog');
         }
 
         function deleteProduct(id) {
             if(confirm('Маҳсулотни ўчирмоқчимисиз?')) {
-                products = products.filter(p => p.id !== id);
-                saveToStorage();
-                renderProducts();
+                let newProductsList = products.filter(p => p.id !== id);
+                if (window.saveProductsToFirebase) {
+                    window.saveProductsToFirebase(newProductsList);
+                }
             }
         }
 
@@ -691,18 +651,6 @@
 
             if (window.createOrder) {
                 window.createOrder(orderId, currentUser.name, currentUser.phone, orderDate, items, total);
-            } else {
-                const order = {
-                    id: orderId,
-                    user: currentUser.name,
-                    phone: currentUser.phone,
-                    date: orderDate,
-                    items: items,
-                    total: total,
-                    status: 'Kutilmoqda'
-                };
-                allOrders.unshift(order);
-                saveToStorage();
             }
 
             cart = {};
@@ -716,13 +664,6 @@
         function changeOrderStatus(orderId, newStatus) {
             if (window.updateOrderStatus) {
                 window.updateOrderStatus(orderId, newStatus);
-            } else {
-                const order = allOrders.find(o => o.id === orderId);
-                if(order) {
-                    order.status = newStatus;
-                    saveToStorage();
-                    renderAdminOrders();
-                }
             }
         }
 
@@ -755,7 +696,6 @@
             const container = document.getElementById('adminBuyerRatingList');
             let stats = {};
 
-            // Hisob-kitob: Har bir xaridor bo'yicha jami savdo summasi va buyurtmalar soni
             allOrders.forEach(o => {
                 if(o.phone && o.phone !== 'XorazmOptomAdmin' && o.status !== 'Bekor qilindi') {
                     if(!stats[o.phone]) {
@@ -854,6 +794,71 @@
       const app = initializeApp(firebaseConfig);
       const db = getDatabase(app);
 
+      // Boshlang'ich default tovarlar va bannerlar (agar baza bo'sh bo'lsa)
+      const defaultBanners = [
+          "https://images.unsplash.com/photo-1584813470613-5b1c1cad3d69?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=800&q=80"
+      ];
+      const defaultProducts = [
+          { id: 1, category: "Маиший кимё", title: "Shengbolan Кир ювиш воситаси", desc: "3000 ml. Махсус B2B формула.", p1: 53000, p5: 50000, p10: 47000, images: ["https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=500&q=80"] },
+          { id: 2, category: "Маиший кимё", title: "Shengbolan AIX Тозаловчи", desc: "1200 ml. Ошхона тозалагич.", p1: 18000, p5: 17000, p10: 16000, images: ["https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=500&q=80"] }
+      ];
+
+      // Realtime listeners (Barcha o'zgarishlarni avtomatik qabul qilish)
+      onValue(ref(db, 'banners'), (snapshot) => {
+          const val = snapshot.val();
+          if (val) {
+              window.banners = val;
+          } else {
+              set(ref(db, 'banners'), defaultBanners);
+              window.banners = defaultBanners;
+          }
+          if (typeof renderBanners === 'function') renderBanners();
+          if (typeof renderAdminBannerList === 'function') renderAdminBannerList();
+      });
+
+      onValue(ref(db, 'products'), (snapshot) => {
+          const val = snapshot.val();
+          if (val) {
+              window.products = val;
+          } else {
+              set(ref(db, 'products'), defaultProducts);
+              window.products = defaultProducts;
+          }
+          if (typeof renderProducts === 'function') renderProducts();
+      });
+
+      onValue(ref(db, 'orders'), (snapshot) => {
+          const data = snapshot.val();
+          let firebaseOrders = [];
+          if (data) {
+              for (let id in data) {
+                  firebaseOrders.push({
+                      id: id,
+                      user: data[id].customerName || 'Noma\'lum',
+                      phone: data[id].phone || '',
+                      date: data[id].date || '',
+                      items: data[id].items || [],
+                      total: data[id].totalAmount || 0,
+                      status: data[id].status || 'Kutilmoqda'
+                  });
+              }
+          }
+          window.allOrders = firebaseOrders;
+          if (typeof renderUserOrders === 'function') renderUserOrders();
+          if (typeof renderAdminOrders === 'function') renderAdminOrders();
+          if (typeof renderAdminBuyerRating === 'function') renderAdminBuyerRating();
+      });
+
+      // Ma'lumotlarni Firebasega saqlash funksiyalari
+      window.saveBannersToFirebase = function(newBanners) {
+          set(ref(db, 'banners'), newBanners);
+      };
+
+      window.saveProductsToFirebase = function(newProducts) {
+          set(ref(db, 'products'), newProducts);
+      };
+
       window.createOrder = function(orderId, customerName, phone, date, items, totalAmount) {
         set(ref(db, 'orders/' + orderId), {
           customerName: customerName,
@@ -869,14 +874,6 @@
       window.updateOrderStatus = function(orderId, newStatus) {
         update(ref(db, 'orders/' + orderId), {
           status: newStatus
-        });
-      };
-
-      window.listenToOrders = function(callback) {
-        const ordersRef = ref(db, 'orders/');
-        onValue(ordersRef, (snapshot) => {
-          const data = snapshot.val();
-          if (callback) callback(data);
         });
       };
     </script>
