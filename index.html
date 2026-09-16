@@ -34,15 +34,17 @@
         /* Marketplace Product Grid */
         .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .card { background: white; border-radius: 8px; padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; position: relative; }
-        .card img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; cursor: pointer; }
+        .card img { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; cursor: pointer; }
         .card-title { font-size: 13px; font-weight: 500; color: #222; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
         .card-price { font-size: 14px; color: #ff5722; font-weight: bold; margin-top: 4px; }
         .card-opt { font-size: 10px; color: #666; margin-top: 2px; }
 
-        /* Qty Controls */
-        .qty-box { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; background: #f9f9f9; border-radius: 6px; padding: 2px; }
-        .qty-btn { background: #fff; border: 1px solid #ddd; width: 26px; height: 26px; border-radius: 4px; font-weight: bold; cursor: pointer; color: #333; }
+        /* Qty & Cart Controls */
+        .qty-box { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; background: #f9f9f9; border-radius: 6px; padding: 2px; }
+        .qty-btn { background: #fff; border: 1px solid #ddd; width: 26px; height: 26px; border-radius: 4px; font-weight: bold; cursor: pointer; color: #333; display: flex; align-items: center; justify-content: center; font-size: 14px; }
         .qty-input { width: 30px; text-align: center; border: none; background: transparent; font-size: 12px; font-weight: bold; }
+        
+        .add-to-cart-card-btn { background: #7f00ff; color: white; border: none; width: 100%; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 4px; }
 
         /* Bottom Navigation */
         .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 100; display: none; }
@@ -50,10 +52,13 @@
         .nav-item.active { color: #7f00ff; font-weight: bold; }
         
         .btn { background: #7f00ff; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .form-input, .form-select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: #fff; }
+        .form-input, .form-select, .form-textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: #fff; }
         
-        .status-badge { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; }
+        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; }
+        .status-accepted { background: #3b82f6; }
+        .status-shipping { background: #f59e0b; }
         .status-delivered { background: #10b981; }
+        .status-cancelled { background: #ef4444; }
 
         /* Modal Product Details */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 15px; }
@@ -61,7 +66,6 @@
         .close-modal { position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; cursor: pointer; color: #777; }
         .modal-img-container { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; scrollbar-width: thin; }
         .modal-img-container img { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid #eee; cursor: pointer; transition: transform 0.2s; }
-        .modal-img-container img:hover { transform: scale(1.03); }
 
         /* Fullscreen Image Zoom Modal with arrows */
         .zoom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
@@ -69,7 +73,6 @@
         .zoom-nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; font-size: 24px; padding: 15px 12px; cursor: pointer; border-radius: 4px; z-index: 2001; }
         .zoom-nav-left { left: 15px; }
         .zoom-nav-right { right: 15px; }
-        .zoom-nav-btn:hover { background: rgba(255,255,255,0.4); }
     </style>
 </head>
 <body>
@@ -91,7 +94,6 @@
 
         <!-- 1. CATALOG SCREEN -->
         <div id="catalogScreen" style="display:none;">
-            <!-- Categories Filter Bar -->
             <div class="categories-scroll" id="categoriesBar">
                 <div class="cat-chip active" onclick="filterCategory('Barchasi')">Barchasi</div>
                 <div class="cat-chip" onclick="filterCategory('Oziq-ovqat')">Oziq-ovqat</div>
@@ -106,7 +108,7 @@
             <div class="product-grid" id="productList"></div>
         </div>
 
-        <!-- 2. CART SCREEN (Savatcha va Buyurtma berish) -->
+        <!-- 2. CART SCREEN -->
         <div id="cartScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px;">
                 <h3 style="margin-bottom: 10px;">Savatcha va Buyurtma</h3>
@@ -138,16 +140,19 @@
                 <input type="number" class="form-input" id="price1" placeholder="1 dona narxi">
                 <input type="number" class="form-input" id="price5" placeholder="5 dona+ narxi">
                 <input type="number" class="form-input" id="price10" placeholder="10 dona+ narxi">
-                <label style="font-size:12px; color:#555;">Telefon xotirasidan rasmlar (bir nechta):</label>
+                
+                <label style="font-size:12px; color:#555; font-weight:bold;">Rasmlar (Fayl tanlang yoki URL havolalarini yozing):</label>
                 <input type="file" class="form-input" id="prodImagesInput" multiple accept="image/*" style="margin-top:5px;">
+                <textarea class="form-textarea" id="prodUrlsInput" placeholder="Yoki rasm URL havolalarini yozing (Har bir havola yangi qatordan, masalan: https://i.ibb.co/...)" rows="3"></textarea>
+                
                 <button class="btn" onclick="addNewProduct()">Tovarni qo'shish</button>
             </div>
 
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Bannerlarni boshqarish (Karusel)</h3>
+                <h3>Bannerlarni boshqarish</h3>
                 <input type="file" class="form-input" id="bannerImagesInput" multiple accept="image/*" style="margin-top:10px;">
+                <textarea class="form-textarea" id="bannerUrlsInput" placeholder="Yoki banner URL havolalarini yozing (Har biri yangi qatordan)" rows="2"></textarea>
                 <button class="btn" onclick="addNewBanners()" style="background: #2563eb;">Yangi bannerlarni yuklash</button>
-                
                 <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
                     <label style="font-size: 13px; font-weight: bold; color: #333;">Mavjud bannerlar:</label>
                     <div id="adminBannerList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
@@ -157,35 +162,34 @@
             <button class="btn" onclick="logout()" style="background: #dc2626; margin-bottom: 20px;">Tizimdan chiqish</button>
         </div>
 
-        <!-- 5. ADMIN STATS SCREEN -->
+        <!-- 5. ADMIN STATS & ORDERS SCREEN -->
         <div id="adminStatsScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Xaridorlar reytingi</h3>
-                <div id="adminCustomersList" style="margin-top: 10px; font-size: 13px;"></div>
+                <h3>Kelib tushgan buyurtmalar</h3>
+                <div id="adminOrdersList" style="margin-top: 10px;"></div>
             </div>
 
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Yetkazib berilgan buyurtmalar tarixi</h3>
-                <div id="adminOrdersList" style="margin-top: 10px;"></div>
+                <h3>Xaridorlar reytingi</h3>
+                <div id="adminCustomersList" style="margin-top: 10px; font-size: 13px;"></div>
             </div>
             
             <button class="btn" onclick="logout()" style="background: #dc2626; margin-bottom: 20px;">Tizimdan chiqish</button>
         </div>
     </div>
 
-    <!-- Tovar haqida batafsil ma'lumot Modal oynasi -->
+    <!-- Tovar modal -->
     <div class="modal" id="productModal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeProductModal()">&times;</span>
             <h3 id="modalTitle" style="margin-bottom: 10px; font-size: 16px; padding-right: 20px;"></h3>
             <div class="modal-img-container" id="modalImages"></div>
             <div id="modalPrices" style="font-size: 14px; color: #333; line-height: 1.6; margin-bottom: 10px;"></div>
-            <!-- Modal ichida savatga qo'shish (miqdorni boshqarish) -->
             <div id="modalQtyContainer"></div>
         </div>
     </div>
 
-    <!-- Rasmni katta qilib ko'rsatish uchun Lightbox Modal (Galereya imkoniyati bilan) -->
+    <!-- Zoom modal -->
     <div class="zoom-modal" id="imageZoomModal">
         <span class="close-modal" style="top:20px; right:25px; color:white; font-size:30px; z-index:2002;" onclick="closeZoomModal()">&times;</span>
         <button class="zoom-nav-btn zoom-nav-left" onclick="changeZoomImage(-1)">&#10094;</button>
@@ -256,7 +260,7 @@
                 navBar.innerHTML = `
                     <div class="nav-item active" onclick="switchTab('catalog')">Katalog</div>
                     <div class="nav-item" onclick="switchTab('admin')">Tovar & Banner</div>
-                    <div class="nav-item" onclick="switchTab('adminStats')">Reyting & Tarix</div>
+                    <div class="nav-item" onclick="switchTab('adminStats')">Buyurtmalar</div>
                 `;
             } else {
                 navBar.innerHTML = `
@@ -291,11 +295,8 @@
             activeCategory = cat;
             const chips = document.querySelectorAll('.cat-chip');
             chips.forEach(chip => {
-                if(chip.innerText.toLowerCase() === cat.toLowerCase()) {
-                    chip.classList.add('active');
-                } else {
-                    chip.classList.remove('active');
-                }
+                if(chip.innerText.toLowerCase() === cat.toLowerCase()) chip.classList.add('active');
+                else chip.classList.remove('active');
             });
             renderProducts();
         }
@@ -317,7 +318,6 @@
             track.innerHTML = banners.map(b => `<div class="carousel-slide"><img src="${b}"></div>`).join('');
             
             if (autoSlideTimer) clearInterval(autoSlideTimer);
-            
             let index = 0;
             autoSlideTimer = setInterval(() => {
                 if(track.children.length === 0) return;
@@ -329,12 +329,10 @@
         function renderAdminBannersList() {
             const container = document.getElementById('adminBannerList');
             if(!container) return;
-
             if(!banners || banners.length === 0) {
                 container.innerHTML = '<p style="color:#777; font-size:12px;">Hozircha bannerlar mavjud emas</p>';
                 return;
             }
-
             container.innerHTML = banners.map((b, index) => `
                 <div style="display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 6px; border-radius: 6px; border: 1px solid #eee;">
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -347,11 +345,9 @@
         }
 
         function deleteBanner(index) {
-            if(confirm("Haqiqatan ham ushbu bannerni o'chirib tashlamoqchimisiz?")) {
+            if(confirm("Bannerni o'chirmoqchimisiz?")) {
                 banners.splice(index, 1);
-                if(window.saveBannersToFirebase) {
-                    window.saveBannersToFirebase(banners);
-                }
+                if(window.saveBannersToFirebase) window.saveBannersToFirebase(banners);
                 renderBanners();
                 renderAdminBannersList();
             }
@@ -375,7 +371,6 @@
                 const qty = cart[p.id] || 0;
                 const unitPrice = getProductPrice(p, qty > 0 ? qty : 1);
                 const totalSum = qty > 0 ? unitPrice * qty : unitPrice;
-                
                 const optText = p.p5 ? `Optom: 5+ (${Number(p.p5).toLocaleString()} so'm)` : '';
                 const mainImg = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/80';
 
@@ -385,16 +380,20 @@
                         <img src="${mainImg}" onclick="openProductModal('${p.id}')">
                         <div class="card-title" onclick="openProductModal('${p.id}')">${p.title}</div>
                         <div class="card-price">${totalSum.toLocaleString()} so'm</div>
-                        <div style="font-size: 11px; color: #555;">${qty > 0 ? `${qty} dona (${unitPrice.toLocaleString()} so'mdan)` : `1 donasi: ${unitPrice.toLocaleString()} so'm`}</div>
+                        <div style="font-size: 11px; color: #555;">${qty > 0 ? `${qty} dona` : `1 donasi: ${unitPrice.toLocaleString()} so'm`}</div>
                         <div class="card-opt">${optText}</div>
                     </div>
                     <div>
-                        <div class="qty-box">
-                            <button class="qty-btn" onclick="changeQty('${p.id}', -1)">-</button>
-                            <input type="number" class="qty-input" value="${qty}" min="0" onchange="manualQty('${p.id}', this.value)">
-                            <button class="qty-btn" onclick="changeQty('${p.id}', 1)">+</button>
-                        </div>
-                        ${currentUser && currentUser.role === 'admin' ? `<button onclick="deleteProduct('${p.id}')" style="background:#ef4444; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; margin-top:6px; font-size:11px; font-weight:bold;">O'chirish</button>` : ''}
+                        ${qty === 0 ? `
+                            <button class="add-to-cart-card-btn" onclick="changeQty('${p.id}', 1)">🛒 Savatchaga</button>
+                        ` : `
+                            <div class="qty-box">
+                                <button class="qty-btn" onclick="changeQty('${p.id}', -1)">${qty === 1 ? '🗑️' : '-'}</button>
+                                <input type="number" class="qty-input" value="${qty}" min="0" onchange="manualQty('${p.id}', this.value)">
+                                <button class="qty-btn" onclick="changeQty('${p.id}', 1)">+</button>
+                            </div>
+                        `}
+                        ${currentUser && currentUser.role === 'admin' ? `<button onclick="deleteProduct('${p.id}')" style="background:#ef4444; color:white; border:none; padding:5px; width:100%; border-radius:4px; cursor:pointer; margin-top:6px; font-size:11px; font-weight:bold;">O'chirish</button>` : ''}
                     </div>
                 </div>`;
             }).join('');
@@ -406,7 +405,6 @@
             if(!p) return;
 
             document.getElementById('modalTitle').innerText = p.title;
-            
             const imgContainer = document.getElementById('modalImages');
             if(p.images && p.images.length > 0) {
                 imgContainer.innerHTML = p.images.map(img => `<img src="${img}" onclick="openZoomModal('${img}')">`).join('');
@@ -420,7 +418,6 @@
             if(p.p10) priceInfo += `<b>10 dona+ narxi:</b> ${Number(p.p10).toLocaleString()} so'm`;
 
             document.getElementById('modalPrices').innerHTML = priceInfo;
-
             updateModalQtyView();
             document.getElementById('productModal').style.display = 'flex';
         }
@@ -443,9 +440,9 @@
                         <span>Jami: <b style="color: #ff5722; font-size: 15px;">${totalSum.toLocaleString()} so'm</b></span>
                     </div>
                 </div>
-                <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #444;">Miqdorni tanlash:</div>
+                <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #444;">Miqdor:</div>
                 <div class="qty-box" style="padding: 6px;">
-                    <button class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="changeQty('${currentModalProductId}', -1); updateModalQtyView();">-</button>
+                    <button class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="changeQty('${currentModalProductId}', -1); updateModalQtyView();">${qty <= 1 ? '🗑️' : '-'}</button>
                     <input type="number" class="qty-input" style="font-size: 15px; width: 50px;" value="${qty}" min="0" onchange="manualQty('${currentModalProductId}', this.value); updateModalQtyView();">
                     <button class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="changeQty('${currentModalProductId}', 1); updateModalQtyView();">+</button>
                 </div>
@@ -467,28 +464,16 @@
                 currentZoomImages = [imgSrc];
                 currentZoomIndex = 0;
             }
-
-            updateZoomImageDisplay();
+            document.getElementById('zoomedImgSrc').src = currentZoomImages[currentZoomIndex];
             document.getElementById('imageZoomModal').style.display = 'flex';
         }
 
         function changeZoomImage(direction) {
             if(!currentZoomImages || currentZoomImages.length === 0) return;
             currentZoomIndex += direction;
-            
-            if(currentZoomIndex < 0) {
-                currentZoomIndex = currentZoomImages.length - 1;
-            } else if(currentZoomIndex >= currentZoomImages.length) {
-                currentZoomIndex = 0;
-            }
-
-            updateZoomImageDisplay();
-        }
-
-        function updateZoomImageDisplay() {
-            if(currentZoomImages.length > 0) {
-                document.getElementById('zoomedImgSrc').src = currentZoomImages[currentZoomIndex];
-            }
+            if(currentZoomIndex < 0) currentZoomIndex = currentZoomImages.length - 1;
+            else if(currentZoomIndex >= currentZoomImages.length) currentZoomIndex = 0;
+            document.getElementById('zoomedImgSrc').src = currentZoomImages[currentZoomIndex];
         }
 
         function closeZoomModal() {
@@ -497,18 +482,17 @@
 
         function changeQty(id, delta) {
             cart[id] = Math.max(0, (cart[id] || 0) + delta);
+            if(cart[id] === 0) delete cart[id];
             renderProducts();
-            if(currentModalProductId === id) {
-                updateModalQtyView();
-            }
+            if(currentModalProductId === id) updateModalQtyView();
         }
 
         function manualQty(id, val) {
-            cart[id] = Math.max(0, parseInt(val) || 0);
+            let parsed = parseInt(val) || 0;
+            if(parsed <= 0) delete cart[id];
+            else cart[id] = parsed;
             renderProducts();
-            if(currentModalProductId === id) {
-                updateModalQtyView();
-            }
+            if(currentModalProductId === id) updateModalQtyView();
         }
 
         function renderCart() {
@@ -525,19 +509,18 @@
                     let price = getProductPrice(p, qty);
                     let sum = price * qty;
                     grandTotal += sum;
-                    
-                    let activePriceLabel = `(1 dona: ${Number(p.p1).toLocaleString()} so'm)`;
-                    if(qty >= 10 && p.p10) activePriceLabel = `(10+ dona optom: ${Number(p.p10).toLocaleString()} so'm)`;
-                    else if(qty >= 5 && p.p5) activePriceLabel = `(5+ dona optom: ${Number(p.p5).toLocaleString()} so'm)`;
+                    let mainImg = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/60';
 
-                    html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:13px; border-bottom:1px solid #eee; padding-bottom:8px;">
-                        <div>
-                            <b>${p.title}</b><br>
-                            <span style="color:#777; font-size:11px;">${qty} dona ${activePriceLabel}</span>
+                    html += `
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:8px; gap: 10px;">
+                        <img src="${mainImg}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border:1px solid #eee;">
+                        <div style="flex-grow: 1;">
+                            <b style="font-size: 13px; color:#222;">${p.title}</b><br>
+                            <span style="color:#777; font-size:11px;">${qty} dona × ${price.toLocaleString()} so'm</span>
                         </div>
                         <div style="text-align:right;">
-                            <b>${sum.toLocaleString()} so'm</b><br>
-                            <span style="color:#ef4444; font-size:11px; cursor:pointer;" onclick="changeQty('${p.id}', -${qty})">O'chirish</span>
+                            <b style="font-size: 13px; color:#ff5722;">${sum.toLocaleString()} so'm</b><br>
+                            <span style="color:#ef4444; font-size:11px; cursor:pointer; font-weight: bold;" onclick="changeQty('${p.id}', -${qty})">O'chirish</span>
                         </div>
                     </div>`;
                 }
@@ -554,7 +537,6 @@
 
         function submitOrder() {
             if(!currentUser) return;
-
             let orderItems = [];
             let grandTotal = 0;
 
@@ -578,23 +560,30 @@
                 clientPhone: currentUser.phone,
                 items: orderItems,
                 total: grandTotal,
-                status: "Yetkazildi",
+                status: "Buyurtma qabul qilindi",
                 date: new Date().toLocaleString()
             };
 
-            if(window.saveOrderToFirebase) {
-                window.saveOrderToFirebase(newOrder);
-            }
+            if(window.saveOrderToFirebase) window.saveOrderToFirebase(newOrder);
 
             cart = {};
+            renderProducts();
+
             alert("Buyurtmangiz muvaffaqiyatli yuborildi!");
             switchTab('myOrders');
+        }
+
+        function getStatusBadge(status) {
+            if(status === 'Buyurtma qabul qilindi') return '<span class="status-badge status-accepted">Qabul qilindi</span>';
+            if(status === "Yo'lda") return '<span class="status-badge status-shipping">Yo\'lda</span>';
+            if(status === 'Yetkazildi') return '<span class="status-badge status-delivered">Yetkazildi</span>';
+            if(status === 'Bekor qilindi') return '<span class="status-badge status-cancelled">Bekor qilindi</span>';
+            return `<span class="status-badge status-accepted">${status}</span>`;
         }
 
         function renderMyOrders() {
             const list = document.getElementById('myOrdersList');
             if(!currentUser) return;
-
             let html = '';
             let found = false;
 
@@ -602,8 +591,6 @@
                 let ord = orders[id];
                 if(ord.clientPhone === currentUser.phone) {
                     found = true;
-                    let badgeClass = 'status-delivered';
-
                     let itemsHtml = (ord.items || []).map(i => `<div style="font-size:12px; color:#555;">- ${i.title} (${i.qty} dona) — ${Number(i.sum).toLocaleString()} so'm</div>`).join('');
 
                     html += `
@@ -611,80 +598,82 @@
                         <div><b>Sana:</b> ${ord.date}</div>
                         <div style="margin:5px 0;"><b>Tarkibi:</b><br>${itemsHtml}</div>
                         <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} so'm</div>
-                        <div style="margin-top:5px;"><b>Holat:</b> <span class="status-badge ${badgeClass}">${ord.status}</span></div>
+                        <div style="margin-top:5px;"><b>Holat:</b> ${getStatusBadge(ord.status)}</div>
                     </div>`;
                 }
             }
 
-            if(!found) {
-                list.innerHTML = '<p style="color:#777; text-align:center;">Buyurtmalar topilmadi</p>';
-            } else {
-                list.innerHTML = html;
-            }
+            if(!found) list.innerHTML = '<p style="color:#777; text-align:center;">Buyurtmalar topilmadi</p>';
+            else list.innerHTML = html;
         }
 
         function renderAdminPanel() {
             const ordersDiv = document.getElementById('adminOrdersList');
             let ordersHtml = '';
             let customersMap = {};
-            let deliveredCount = 0;
 
             if (!orders || Object.keys(orders).length === 0) {
                 ordersDiv.innerHTML = '<p style="color:#777;">Buyurtmalar mavjud emas</p>';
             } else {
                 for (let id in orders) {
                     let ord = orders[id];
-                    
-                    if (ord.status === 'Yetkazildi') {
-                        deliveredCount++;
-
-                        if(ord.clientPhone) {
-                            if(!customersMap[ord.clientPhone]) {
-                                customersMap[ord.clientPhone] = { name: ord.shopName, phone: ord.clientPhone, totalSpent: 0, orderCount: 0 };
-                            }
-                            customersMap[ord.clientPhone].totalSpent += Number(ord.total || 0);
-                            customersMap[ord.clientPhone].orderCount += 1;
+                    if(ord.clientPhone) {
+                        if(!customersMap[ord.clientPhone]) {
+                            customersMap[ord.clientPhone] = { name: ord.shopName, phone: ord.clientPhone, totalSpent: 0, orderCount: 0 };
                         }
-
-                        ordersHtml += `
-                        <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px; background:#fafafa;">
-                            <div><b>Do'kon:</b> ${ord.shopName} (${ord.clientPhone})</div>
-                            <div><b>Sana:</b> ${ord.date}</div>
-                            <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} so'm</div>
-                            <div style="margin:5px 0;"><b>Holat:</b> <span class="status-badge status-delivered">${ord.status}</span></div>
-                        </div>`;
+                        if(ord.status === 'Yetkazildi') {
+                            customersMap[ord.clientPhone].totalSpent += Number(ord.total || 0);
+                        }
+                        customersMap[ord.clientPhone].orderCount += 1;
                     }
-                }
 
-                if (deliveredCount === 0) {
-                    ordersDiv.innerHTML = '<p style="color:#777;">Yetkazib berilgan buyurtmalar mavjud emas</p>';
-                } else {
-                    ordersDiv.innerHTML = ordersHtml;
+                    let itemsHtml = (ord.items || []).map(i => `<div style="font-size:11px; color:#555;">- ${i.title} (${i.qty} dona)</div>`).join('');
+
+                    ordersHtml += `
+                    <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:12px; background:#fafafa;">
+                        <div><b>Do'kon:</b> ${ord.shopName} (${ord.clientPhone})</div>
+                        <div><b>Sana:</b> ${ord.date}</div>
+                        <div style="margin:4px 0;"><b>Tovarlar:</b>${itemsHtml}</div>
+                        <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} so'm</div>
+                        <div style="margin:6px 0; display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                            <b>Holat:</b> ${getStatusBadge(ord.status)}
+                        </div>
+                        <div style="display:flex; gap:4px; margin-top:8px; flex-wrap:wrap;">
+                            <button onclick="updateOrderStatus('${id}', 'Buyurtma qabul qilindi')" style="background:#3b82f6; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Qabul</button>
+                            <button onclick="updateOrderStatus('${id}', 'Yo\'lda')" style="background:#f59e0b; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Yo'lda</button>
+                            <button onclick="updateOrderStatus('${id}', 'Yetkazildi')" style="background:#10b981; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Yetkazildi</button>
+                            <button onclick="updateOrderStatus('${id}', 'Bekor qilindi')" style="background:#ef4444; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Bekor</button>
+                        </div>
+                    </div>`;
                 }
+                ordersDiv.innerHTML = ordersHtml;
             }
 
             const customersDiv = document.getElementById('adminCustomersList');
             let custHtml = '';
             let custArr = Object.values(customersMap).sort((a,b) => b.totalSpent - a.totalSpent);
-
             if(custArr.length === 0) {
-                customersDiv.innerHTML = '<p style="color:#777;">Xaridorlar to\'plangani yo\'q</p>';
+                customersDiv.innerHTML = '<p style="color:#777;">Xaridorlar mavjud emas</p>';
             } else {
                 custArr.forEach((c, idx) => {
                     custHtml += `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:5px 0;">
                         <span><b>${idx+1}. ${c.name}</b> (${c.phone})</span>
-                        <span><b>${c.orderCount} ta yetkazilgan</b> | ${c.totalSpent.toLocaleString()} so'm</span>
+                        <span><b>${c.orderCount} ta buyurtma</b></span>
                     </div>`;
                 });
                 customersDiv.innerHTML = custHtml;
             }
         }
 
+        function updateOrderStatus(orderId, newStatus) {
+            if(window.updateOrderStatusInFirebase) {
+                window.updateOrderStatusInFirebase(orderId, newStatus);
+            }
+        }
+
         function deleteProduct(productId) {
-            if(confirm("Haqiqatan ham tovarni sotuvdan olib tashlamoqchimisiz?")) {
-                if(window.deleteProductFromFirebase) {
-                    window.deleteProductFromFirebase(productId);
-                }
+            if(confirm("Tovarni o'chirmoqchimisiz?")) {
+                if(window.deleteProductFromFirebase) window.deleteProductFromFirebase(productId);
             }
         }
 
@@ -703,10 +692,12 @@
         async function addNewProduct() {
             const title = document.getElementById('prodTitle').value.trim();
             const category = document.getElementById('prodCategory').value;
-            const p1 = document.getElementById('price1').value.trim();
-            const p5 = document.getElementById('price5').value.trim() || p1;
-            const p10 = document.getElementById('price10').value.trim() || p5;
+            let p1 = document.getElementById('price1').value.trim();
+            let p5 = document.getElementById('price5').value.trim() || p1;
+            let p10 = document.getElementById('price10').value.trim() || p5;
+            
             const fileInput = document.getElementById('prodImagesInput');
+            const urlsText = document.getElementById('prodUrlsInput').value.trim();
 
             if(!title || !p1) {
                 alert('Tovar nomi va 1 dona narxini kiriting!');
@@ -714,8 +705,22 @@
             }
 
             let images = [];
+            
+            // 1. Agar fayl tanlangan bo'lsa
             if(fileInput.files && fileInput.files.length > 0) {
-                images = await convertFilesToBase64(fileInput.files);
+                let base64Imgs = await convertFilesToBase64(fileInput.files);
+                images = images.concat(base64Imgs);
+            }
+
+            // 2. Agar URL havolalari yozilgan bo'lsa
+            if(urlsText) {
+                let urlLines = urlsText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+                images = images.concat(urlLines);
+            }
+
+            if(images.length === 0) {
+                alert('Itimtimos, rasm faylini tanlang yoki rasm URL manzilini kiriting!');
+                return;
             }
 
             if(window.saveProductToFirebase) {
@@ -727,27 +732,39 @@
             document.getElementById('price5').value = '';
             document.getElementById('price10').value = '';
             document.getElementById('prodImagesInput').value = '';
-            alert("Tovar muvaffaqiyatli qo'shildi!");
+            document.getElementById('prodUrlsInput').value = '';
+            alert("Tovar qo'shildi!");
         }
 
         async function addNewBanners() {
             const fileInput = document.getElementById('bannerImagesInput');
-            if(!fileInput.files || fileInput.files.length === 0) {
-                alert('Kamida bitta banner rasmini tanlang!');
+            const urlsText = document.getElementById('bannerUrlsInput').value.trim();
+            
+            let newImages = [];
+            
+            if(fileInput.files && fileInput.files.length > 0) {
+                let base64Imgs = await convertFilesToBase64(fileInput.files);
+                newImages = newImages.concat(base64Imgs);
+            }
+
+            if(urlsText) {
+                let urlLines = urlsText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+                newImages = newImages.concat(urlLines);
+            }
+
+            if(newImages.length === 0) {
+                alert('Banner uchun rasm tanlang yoki URL manzilini kiriting!');
                 return;
             }
 
-            let newImages = await convertFilesToBase64(fileInput.files);
             banners = banners.concat(newImages);
-
-            if(window.saveBannersToFirebase) {
-                window.saveBannersToFirebase(banners);
-            }
-
+            if(window.saveBannersToFirebase) window.saveBannersToFirebase(banners);
+            
             document.getElementById('bannerImagesInput').value = '';
+            document.getElementById('bannerUrlsInput').value = '';
             renderBanners();
             renderAdminBannersList();
-            alert("Bannerlar muvaffaqiyatli qo'shildi!");
+            alert("Bannerlar qo'shildi!");
         }
     </script>
 
@@ -771,14 +788,9 @@
 
       onValue(ref(db, 'banners'), (snapshot) => {
           const data = snapshot.val();
-          if (data) {
-              banners = Array.isArray(data) ? data : Object.values(data);
-          } else {
-              banners = [];
-          }
+          banners = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
           renderBanners();
-          const adminScreen = document.getElementById('adminScreen');
-          if(currentUser && currentUser.role === 'admin' && adminScreen && adminScreen.style.display === 'block') {
+          if(currentUser && currentUser.role === 'admin' && document.getElementById('adminScreen').style.display === 'block') {
               renderAdminBannersList();
           }
       });
@@ -787,9 +799,7 @@
           const data = snapshot.val();
           products = [];
           if (data) {
-              for (let id in data) {
-                  products.push({ id: id, ...data[id] });
-              }
+              for (let id in data) products.push({ id: id, ...data[id] });
           }
           renderProducts();
       });
@@ -797,37 +807,16 @@
       onValue(ref(db, 'orders'), (snapshot) => {
           const data = snapshot.val();
           orders = data || {};
-          const adminStats = document.getElementById('adminStatsScreen');
-          if(currentUser && currentUser.role === 'admin' && adminStats && adminStats.style.display === 'block') {
+          if(currentUser && currentUser.role === 'admin' && document.getElementById('adminStatsScreen').style.display === 'block') {
               renderAdminPanel();
           }
       });
 
-      window.saveProductToFirebase = function(prod) {
-          const newRef = push(ref(db, 'products'));
-          set(newRef, prod);
-      };
-
-      window.deleteProductFromFirebase = function(productId) {
-          remove(ref(db, 'products/' + productId));
-      };
-
-      window.saveBannersListToFirebase = function(banList) {
-          set(ref(db, 'banners'), banList);
-      };
-
-      window.saveBannersToFirebase = function(banList) {
-          set(ref(db, 'banners'), banList);
-      };
-
-      window.saveOrderToFirebase = function(ord) {
-          const newRef = push(ref(db, 'orders'));
-          set(newRef, ord);
-      };
-
-      window.updateOrderStatusInFirebase = function(orderId, newStatus) {
-          update(ref(db, 'orders/' + orderId), { status: newStatus });
-      };
+      window.saveProductToFirebase = (prod) => set(push(ref(db, 'products')), prod);
+      window.deleteProductFromFirebase = (productId) => remove(ref(db, 'products/' + productId));
+      window.saveBannersToFirebase = (banList) => set(ref(db, 'banners'), banList);
+      window.saveOrderToFirebase = (ord) => set(push(ref(db, 'orders')), ord);
+      window.updateOrderStatusInFirebase = (orderId, newStatus) => update(ref(db, 'orders/' + orderId), { status: newStatus });
 
       window.addEventListener('DOMContentLoaded', () => {
           const savedUser = localStorage.getItem('currentUser');
