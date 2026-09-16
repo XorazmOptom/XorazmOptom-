@@ -102,12 +102,12 @@
             <div class="product-grid" id="productList"></div>
         </div>
 
-        <!-- 2. CART SCREEN -->
+        <!-- 2. CART SCREEN (Savatcha va Buyurtma berish) -->
         <div id="cartScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px;">
-                <h3>Buyurtma berish</h3>
-                <div id="cartList" style="margin-top: 10px;"></div>
-                <div id="cartTotal" style="font-weight: bold; margin-top: 15px; font-size: 16px;"></div>
+                <h3 style="margin-bottom: 10px;">Savatcha va Buyurtma</h3>
+                <div id="cartList"></div>
+                <div id="cartTotal" style="font-weight: bold; margin-top: 15px; font-size: 16px; border-top: 1px solid #eee; padding-top: 10px;"></div>
                 <button class="btn" onclick="submitOrder()" style="background: #059669; margin-top: 15px;">Buyurtmani tasdiqlash</button>
             </div>
         </div>
@@ -360,7 +360,6 @@
             
             const imgContainer = document.getElementById('modalImages');
             if(p.images && p.images.length > 0) {
-                // Rasmlarga bosganda kattalashish funksiyasi (openZoomModal) qo'shildi
                 imgContainer.innerHTML = p.images.map(img => `<img src="${img}" onclick="openZoomModal('${img}')">`).join('');
             } else {
                 imgContainer.innerHTML = '<p style="color:#777; font-size:12px;">Rasmlar mavjud emas</p>';
@@ -373,7 +372,6 @@
 
             document.getElementById('modalPrices').innerHTML = priceInfo;
 
-            // Modal oynada savatchaga qo'shish bloki
             updateModalQtyView();
             document.getElementById('productModal').style.display = 'flex';
         }
@@ -437,15 +435,26 @@
                     let price = getProductPrice(p, qty);
                     let sum = price * qty;
                     grandTotal += sum;
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; border-bottom:1px solid #eee; padding-bottom:5px;">
-                        <span>${p.title} (${qty} dona)</span>
-                        <b>${sum.toLocaleString()} so'm</b>
+                    
+                    let activePriceLabel = `(1 dona: ${Number(p.p1).toLocaleString()} so'm)`;
+                    if(qty >= 10 && p.p10) activePriceLabel = `(10+ dona optom: ${Number(p.p10).toLocaleString()} so'm)`;
+                    else if(qty >= 5 && p.p5) activePriceLabel = `(5+ dona optom: ${Number(p.p5).toLocaleString()} so'm)`;
+
+                    html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:13px; border-bottom:1px solid #eee; padding-bottom:8px;">
+                        <div>
+                            <b>${p.title}</b><br>
+                            <span style="color:#777; font-size:11px;">${qty} dona ${activePriceLabel}</span>
+                        </div>
+                        <div style="text-align:right;">
+                            <b>${sum.toLocaleString()} so'm</b><br>
+                            <span style="color:#ef4444; font-size:11px; cursor:pointer;" onclick="changeQty('${p.id}', -${qty})">O'chirish</span>
+                        </div>
                     </div>`;
                 }
             });
 
             if (!hasItems) {
-                list.innerHTML = '<p style="color:#777; text-align:center;">Savatchangiz bo\'sh</p>';
+                list.innerHTML = '<p style="color:#777; text-align:center; padding: 20px 0;">Savatchangiz bo\'sh</p>';
                 totalBox.innerHTML = '';
             } else {
                 list.innerHTML = html;
@@ -505,11 +514,14 @@
                     found = true;
                     let badgeClass = 'status-delivered';
 
+                    let itemsHtml = (ord.items || []).map(i => `<div style="font-size:12px; color:#555;">- ${i.title} (${i.qty} dona) — ${Number(i.sum).toLocaleString()} so'm</div>`).join('');
+
                     html += `
                     <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px;">
                         <div><b>Sana:</b> ${ord.date}</div>
-                        <div style="margin:5px 0;"><b>Holat:</b> <span class="status-badge ${badgeClass}">${ord.status}</span></div>
+                        <div style="margin:5px 0;"><b>Tarkibi:</b><br>${itemsHtml}</div>
                         <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} so'm</div>
+                        <div style="margin-top:5px;"><b>Holat:</b> <span class="status-badge ${badgeClass}">${ord.status}</span></div>
                     </div>`;
                 }
             }
