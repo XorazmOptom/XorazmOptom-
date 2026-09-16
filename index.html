@@ -10,7 +10,11 @@
         header { background: #1e3c72; color: white; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; position: sticky; top: 0; z-index: 100; }
         .container { padding: 10px; max-width: 600px; margin: 0 auto; }
         
-        /* Banner Slider (Swipeable & Auto 3s) */
+        /* Auth Screen */
+        .auth-box { background: white; padding: 20px; border-radius: 10px; margin-top: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .auth-title { text-align: center; margin-bottom: 15px; color: #1e3c72; }
+
+        /* Banner Slider */
         .carousel-container { position: relative; width: 100%; height: 160px; border-radius: 10px; overflow: hidden; margin-bottom: 12px; background: #ddd; }
         .carousel-track { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
         .carousel-track::-webkit-scrollbar { display: none; }
@@ -31,7 +35,7 @@
         .qty-input { width: 35px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
 
         /* Bottom Navigation */
-        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 100; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 100; display: none; }
         .nav-item { font-size: 12px; color: #666; cursor: pointer; font-weight: bold; text-align: center; }
         .nav-item.active { color: #1e3c72; }
         
@@ -51,8 +55,17 @@
     <header>XorazmOptom</header>
 
     <div class="container">
+        <!-- 0. AUTH SCREEN -->
+        <div id="authScreen" class="auth-box">
+            <h3 class="auth-title">Tizimga kirish</h3>
+            <input type="text" class="form-input" id="loginShopName" placeholder="Dokon nomi (Admin uchun: XorazmOptom)">
+            <input type="text" class="form-input" id="loginPhone" placeholder="Telefon raqami (Admin uchun: XorazmOptomAdmin)">
+            <input type="password" class="form-input" id="loginPassword" placeholder="Parol (Admin uchun: 525455)">
+            <button class="btn" onclick="handleLogin()">Kirish</button>
+        </div>
+
         <!-- 1. CATALOG SCREEN -->
-        <div id="catalogScreen">
+        <div id="catalogScreen" style="display:none;">
             <div class="carousel-container" id="carouselBox">
                 <div class="carousel-track" id="carouselTrack"></div>
             </div>
@@ -63,15 +76,13 @@
         <div id="cartScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px;">
                 <h3>Buyurtma berish</h3>
-                <input type="text" class="form-input" id="clientName" placeholder="Ismingiz" style="margin-top:10px;">
-                <input type="text" class="form-input" id="clientPhone" placeholder="Telefon raqamingiz (+998...)">
                 <div id="cartList" style="margin-top: 10px;"></div>
                 <div id="cartTotal" style="font-weight: bold; margin-top: 15px; font-size: 16px;"></div>
                 <button class="btn" onclick="submitOrder()" style="background: #059669; margin-top: 15px;">Buyurtmani tasdiqlash</button>
             </div>
         </div>
 
-        <!-- 3. MY ORDERS SCREEN (Buyer) -->
+        <!-- 3. MY ORDERS SCREEN -->
         <div id="myOrdersScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px;">
                 <h3>Mening buyurtmalarim</h3>
@@ -82,31 +93,33 @@
         <!-- 4. ADMIN PANEL -->
         <div id="adminScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Mahsulot qo'shish</h3>
-                <input type="text" class="form-input" id="prodTitle" placeholder="Mahsulot nomi" style="margin-top:10px;">
+                <h3>Yangi tovar qoshish</h3>
+                <input type="text" class="form-input" id="prodTitle" placeholder="Tovar nomi" style="margin-top:10px;">
                 <input type="number" class="form-input" id="price1" placeholder="1 dona narxi">
                 <input type="number" class="form-input" id="price5" placeholder="5 dona+ narxi">
                 <input type="number" class="form-input" id="price10" placeholder="10 dona+ narxi">
-                <input type="text" class="form-input" id="prodImage" placeholder="Rasm havolasi URL">
-                <button class="btn" onclick="addNewProduct()">Qo'shish</button>
+                <label style="font-size:12px; color:#555;">Telefon xotirasidan rasmlar (kamida 4-5 ta):</label>
+                <input type="file" class="form-input" id="prodImagesInput" multiple accept="image/*" style="margin-top:5px;">
+                <button class="btn" onclick="addNewProduct()">Tovarni qoshish</button>
             </div>
 
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Banner qo'shish</h3>
-                <input type="text" class="form-input" id="bannerImage" placeholder="Banner rasm havolasi URL" style="margin-top:10px;">
-                <button class="btn" onclick="addNewBanner()" style="background: #2563eb;">Banner qo'shish</button>
+                <h3>Banner qoshish (Karusel uchun 4-5 ta rasm)</h3>
+                <input type="file" class="form-input" id="bannerImagesInput" multiple accept="image/*" style="margin-top:10px;">
+                <button class="btn" onclick="addNewBanners()" style="background: #2563eb;">Bannerlarni yuklash</button>
             </div>
 
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Mijozlar reytingi (Sovg'a ulashish uchun)</h3>
+                <h3>Haridorlar reytingi (Sovg'a ulashish uchun)</h3>
                 <div id="adminCustomersList" style="margin-top: 10px; font-size: 13px;"></div>
             </div>
 
-            <div style="background:white; padding:15px; border-radius:10px;">
-                <h3>Barcha buyurtmalar tarixi</h3>
+            <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
+                <h3>Yetkazib berilgan buyurtmalar tarixi</h3>
                 <div id="adminOrdersList" style="margin-top: 10px;"></div>
-                <button class="btn" onclick="switchTab('catalog')" style="background: #6b7280; margin-top: 15px;">Katalogga qaytish</button>
             </div>
+
+            <button class="btn" onclick="logout()" style="background: #dc2626;">Tizimdan chiqish</button>
         </div>
     </div>
 
@@ -115,15 +128,52 @@
         <div class="nav-item active" onclick="switchTab('catalog')">Katalog</div>
         <div class="nav-item" onclick="switchTab('cart')">Savatcha</div>
         <div class="nav-item" onclick="switchTab('myOrders')">Buyurtmalarim</div>
-        <div class="nav-item" onclick="checkAdmin()" style="color: #9ca3af; font-size: 11px;">Admin</div>
     </div>
 
     <script>
         let products = [];
         let banners = [];
-        let orders = [];
+        let orders = {};
         let cart = {}; 
         let autoSlideTimer = null;
+        let currentUser = null;
+
+        function handleLogin() {
+            const name = document.getElementById('loginShopName').value.trim();
+            const phone = document.getElementById('loginPhone').value.trim();
+            const pass = document.getElementById('loginPassword').value.trim();
+
+            if (!name || !phone || !pass) {
+                alert("Barcha maydonlarni toldiring!");
+                return;
+            }
+
+            if (name === "XorazmOptom" && phone === "XorazmOptomAdmin" && pass === "525455") {
+                currentUser = { role: 'admin', name, phone };
+                document.getElementById('authScreen').style.display = 'none';
+                document.getElementById('adminScreen').style.display = 'block';
+                document.getElementById('mainNavBar').style.display = 'none';
+                renderAdminPanel();
+                return;
+            }
+
+            currentUser = { role: 'buyer', name, phone };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainNavBar').style.display = 'flex';
+            switchTab('catalog');
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            document.getElementById('adminScreen').style.display = 'none';
+            document.getElementById('catalogScreen').style.display = 'none';
+            document.getElementById('cartScreen').style.display = 'none';
+            document.getElementById('myOrdersScreen').style.display = 'none';
+            document.getElementById('mainNavBar').style.display = 'none';
+            document.getElementById('authScreen').style.display = 'block';
+        }
 
         function switchTab(tab) {
             document.getElementById('catalogScreen').style.display = tab === 'catalog' ? 'block' : 'none';
@@ -131,8 +181,6 @@
             document.getElementById('myOrdersScreen').style.display = tab === 'myOrders' ? 'block' : 'none';
             document.getElementById('adminScreen').style.display = tab === 'admin' ? 'block' : 'none';
             
-            document.getElementById('mainNavBar').style.display = tab === 'admin' ? 'none' : 'flex';
-
             const items = document.querySelectorAll('.nav-item');
             if(items.length >= 3) {
                 items[0].classList.toggle('active', tab === 'catalog');
@@ -142,16 +190,6 @@
 
             if (tab === 'cart') renderCart();
             if (tab === 'myOrders') renderMyOrders();
-            if (tab === 'admin') renderAdminPanel();
-        }
-
-        function checkAdmin() {
-            let password = prompt("Admin parolini kiriting:");
-            if (password === "777") {
-                switchTab('admin');
-            } else if (password !== null) {
-                alert("Parol notogri!");
-            }
         }
 
         function getProductPrice(p, qty) {
@@ -160,9 +198,9 @@
             return Number(p.p1 || 0);
         }
 
-        // Banners Rendering with Auto 3s slide & Touch Swipe support
         function renderBanners() {
             const track = document.getElementById('carouselTrack');
+            if (!track) return;
             if (!banners || banners.length === 0) {
                 document.getElementById('carouselBox').style.display = 'none';
                 return;
@@ -182,18 +220,20 @@
 
         function renderProducts() {
             const list = document.getElementById('productList');
+            if(!list) return;
             if(products.length === 0) {
-                list.innerHTML = '<p style="text-align:center; color:#777; margin-top:20px;">Mahsulotlar mavjud emas</p>';
+                list.innerHTML = '<p style="text-align:center; color:#777; margin-top:20px;">Tovarlar mavjud emas</p>';
                 return;
             }
             list.innerHTML = products.map(p => {
                 const qty = cart[p.id] || 0;
                 const currentPrice = getProductPrice(p, qty > 0 ? qty : 1);
                 const optText = p.p5 ? `Optom: 5+ (${Number(p.p5).toLocaleString()}), 10+ (${Number(p.p10).toLocaleString()})` : '';
+                const mainImg = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/80';
 
                 return `
                 <div class="card">
-                    <img src="${p.image || 'https://via.placeholder.com/80'}">
+                    <img src="${mainImg}">
                     <div class="card-info">
                         <div class="card-title">${p.title}</div>
                         <div class="card-price">${currentPrice.toLocaleString()} som / dona</div>
@@ -204,6 +244,7 @@
                             <button class="qty-btn" onclick="changeQty('${p.id}', 1)">+</button>
                         </div>
                     </div>
+                    ${currentUser && currentUser.role === 'admin' ? `<button onclick="deleteProduct('${p.id}')" style="background:#ef4444; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer;">Ochirish</button>` : ''}
                 </div>`;
             }).join('');
         }
@@ -249,13 +290,7 @@
         }
 
         function submitOrder() {
-            const name = document.getElementById('clientName').value.trim();
-            const phone = document.getElementById('clientPhone').value.trim();
-
-            if(!name || !phone) {
-                alert("Ism va telefon raqamingizni kiriting!");
-                return;
-            }
+            if(!currentUser) return;
 
             let orderItems = [];
             let grandTotal = 0;
@@ -271,13 +306,13 @@
             });
 
             if (orderItems.length === 0) {
-                alert("Savatchada mahsulot yoq!");
+                alert("Savatchada tovar yoq!");
                 return;
             }
 
             const newOrder = {
-                clientName: name,
-                clientPhone: phone,
+                shopName: currentUser.name,
+                clientPhone: currentUser.phone,
                 items: orderItems,
                 total: grandTotal,
                 status: "Tovar qabul qilindi",
@@ -288,7 +323,6 @@
                 window.saveOrderToFirebase(newOrder);
             }
 
-            localStorage.setItem('lastClientPhone', phone);
             cart = {};
             alert("Buyurtmangiz muvaffaqiyatli yuborildi!");
             switchTab('myOrders');
@@ -296,25 +330,24 @@
 
         function renderMyOrders() {
             const list = document.getElementById('myOrdersList');
-            const userPhone = localStorage.getItem('lastClientPhone');
-            
-            if(!userPhone) {
-                list.innerHTML = '<p style="color:#777; text-align:center;">Siz hali buyurtma bermagansiz</p>';
-                return;
-            }
+            if(!currentUser) return;
 
             let html = '';
             let found = false;
 
             for(let id in orders) {
                 let ord = orders[id];
-                if(ord.clientPhone === userPhone) {
+                if(ord.clientPhone === currentUser.phone) {
                     found = true;
+                    let badgeClass = 'status-accepted';
+                    if(ord.status === 'Yolda') badgeClass = 'status-way';
+                    if(ord.status === 'Yetkazildi') badgeClass = 'status-delivered';
+                    if(ord.status === 'Bekor qilindi') badgeClass = 'status-cancelled';
+
                     html += `
                     <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px;">
                         <div><b>Sana:</b> ${ord.date}</div>
-                        <div><b>Mijoz:</b> ${ord.clientName} (${ord.clientPhone})</div>
-                        <div style="margin:5px 0;"><b>Status:</b> <span class="status-badge status-accepted">${ord.status}</span></div>
+                        <div style="margin:5px 0;"><b>Holat:</b> <span class="status-badge ${badgeClass}">${ord.status}</span></div>
                         <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} som</div>
                     </div>`;
                 }
@@ -328,10 +361,10 @@
         }
 
         function renderAdminPanel() {
-            // Orders list
             const ordersDiv = document.getElementById('adminOrdersList');
             let ordersHtml = '';
             let customersMap = {};
+            let deliveredCount = 0;
 
             if (!orders || Object.keys(orders).length === 0) {
                 ordersDiv.innerHTML = '<p style="color:#777;">Buyurtmalar mavjud emas</p>';
@@ -339,49 +372,46 @@
                 for (let id in orders) {
                     let ord = orders[id];
                     
-                    // Collect customer stats for ratings/gifts
-                    if(ord.clientPhone) {
-                        if(!customersMap[ord.clientPhone]) {
-                            customersMap[ord.clientPhone] = { name: ord.clientName, phone: ord.clientPhone, totalSpent: 0, orderCount: 0 };
+                    // Faqat yetkazib berilgan buyurtmalar tarixiga kiritiladi, bekor qilinganlar kiritilmaydi
+                    if (ord.status === 'Yetkazildi') {
+                        deliveredCount++;
+
+                        if(ord.clientPhone) {
+                            if(!customersMap[ord.clientPhone]) {
+                                customersMap[ord.clientPhone] = { name: ord.shopName, phone: ord.clientPhone, totalSpent: 0, orderCount: 0 };
+                            }
+                            customersMap[ord.clientPhone].totalSpent += Number(ord.total || 0);
+                            customersMap[ord.clientPhone].orderCount += 1;
                         }
-                        customersMap[ord.clientPhone].totalSpent += Number(ord.total || 0);
-                        customersMap[ord.clientPhone].orderCount += 1;
+
+                        ordersHtml += `
+                        <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px; background:#fafafa;">
+                            <div><b>Dokon:</b> ${ord.shopName} (${ord.clientPhone})</div>
+                            <div><b>Sana:</b> ${ord.date}</div>
+                            <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} som</div>
+                            <div style="margin:5px 0;"><b>Holat:</b> <span class="status-badge status-delivered">${ord.status}</span></div>
+                        </div>`;
                     }
-
-                    let badgeClass = 'status-accepted';
-                    if(ord.status === 'Yolda') badgeClass = 'status-way';
-                    if(ord.status === 'Yetkazildi') badgeClass = 'status-delivered';
-                    if(ord.status === 'Bekor qilindi') badgeClass = 'status-cancelled';
-
-                    ordersHtml += `
-                    <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px; background:#fafafa;">
-                        <div><b>Mijoz:</b> ${ord.clientName} (${ord.clientPhone})</div>
-                        <div><b>Sana:</b> ${ord.date}</div>
-                        <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} som</div>
-                        <div style="margin:5px 0;"><b>Holat:</b> <span class="status-badge ${badgeClass}">${ord.status}</span></div>
-                        <div style="margin-top:8px; display:flex; gap:5px; flex-wrap:wrap;">
-                            <button onclick="updateOrderStatus('${id}', 'Tovar qabul qilindi')" style="background:#3b82f6; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Qabul qilindi</button>
-                            <button onclick="updateOrderStatus('${id}', 'Yolda')" style="background:#f59e0b; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Yolda</button>
-                            <button onclick="updateOrderStatus('${id}', 'Yetkazildi')" style="background:#10b981; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Yetkazildi</button>
-                            <button onclick="updateOrderStatus('${id}', 'Bekor qilindi')" style="background:#ef4444; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Bekor qilindi</button>
-                        </div>
-                    </div>`;
                 }
-                ordersDiv.innerHTML = ordersHtml;
+
+                if (deliveredCount === 0) {
+                    ordersDiv.innerHTML = '<p style="color:#777;">Yetkazib berilgan buyurtmalar mavjud emas</p>';
+                } else {
+                    ordersDiv.innerHTML = ordersHtml;
+                }
             }
 
-            // Customers Rating List for Gifts
             const customersDiv = document.getElementById('adminCustomersList');
             let custHtml = '';
             let custArr = Object.values(customersMap).sort((a,b) => b.totalSpent - a.totalSpent);
 
             if(custArr.length === 0) {
-                custDiv = '<p style="color:#777;">Mijozlar toplangani yoq</p>';
+                customersDiv.innerHTML = '<p style="color:#777;">Haridorlar toplangani yoq</p>';
             } else {
                 custArr.forEach((c, idx) => {
                     custHtml += `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:5px 0;">
                         <span><b>${idx+1}. ${c.name}</b> (${c.phone})</span>
-                        <span><b>${c.orderCount} ta buyurtma</b> | ${c.totalSpent.toLocaleString()} som</span>
+                        <span><b>${c.orderCount} ta yetkazilgan buyurtma</b> | ${c.totalSpent.toLocaleString()} som</span>
                     </div>`;
                 });
                 customersDiv.innerHTML = custHtml;
@@ -394,51 +424,79 @@
             }
         }
 
-        function addNewProduct() {
+        function deleteProduct(productId) {
+            if(confirm("Haqiqatan ham tovarni sotuvdan olib tashlamoqchimisiz?")) {
+                if(window.deleteProductFromFirebase) {
+                    window.deleteProductFromFirebase(productId);
+                }
+            }
+        }
+
+        async function convertFilesToBase64(files) {
+            let promises = Array.from(files).map(file => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                    reader.readAsDataURL(file);
+                });
+            });
+            return await Promise.all(promises);
+        }
+
+        async function addNewProduct() {
             const title = document.getElementById('prodTitle').value.trim();
             const p1 = document.getElementById('price1').value.trim();
             const p5 = document.getElementById('price5').value.trim() || p1;
             const p10 = document.getElementById('price10').value.trim() || p5;
-            const image = document.getElementById('prodImage').value.trim();
+            const fileInput = document.getElementById('prodImagesInput');
 
             if(!title || !p1) {
-                alert('Mahsulot nomi va 1 dona narxini kiriting!');
+                alert('Tovar nomi va 1 dona narxini kiriting!');
                 return;
             }
 
+            let images = [];
+            if(fileInput.files && fileInput.files.length > 0) {
+                images = await convertFilesToBase64(fileInput.files);
+            }
+
             if(window.saveProductToFirebase) {
-                window.saveProductToFirebase({ title, p1, p5, p10, image });
+                window.saveProductToFirebase({ title, p1, p5, p10, images });
             }
 
             document.getElementById('prodTitle').value = '';
             document.getElementById('price1').value = '';
             document.getElementById('price5').value = '';
             document.getElementById('price10').value = '';
-            document.getElementById('prodImage').value = '';
-            alert("Mahsulot qoshildi!");
-            switchTab('catalog');
+            document.getElementById('prodImagesInput').value = '';
+            alert("Tovar muvaffaqiyatli qoshildi!");
         }
 
-        function addNewBanner() {
-            const imgUrl = document.getElementById('bannerImage').value.trim();
-            if(!imgUrl) {
-                alert('Banner rasm havolasini kiriting!');
+        async function addNewBanners() {
+            const fileInput = document.getElementById('bannerImagesInput');
+            if(!fileInput.files || fileInput.files.length === 0) {
+                alert('Kamida bitta banner rasmini tanlang!');
                 return;
             }
-            banners.push(imgUrl);
+
+            let newImages = await convertFilesToBase64(fileInput.files);
+            banners = banners.concat(newImages);
+
             if(window.saveBannersToFirebase) {
                 window.saveBannersToFirebase(banners);
             }
-            document.getElementById('bannerImage').value = '';
+
+            document.getElementById('bannerImagesInput').value = '';
             renderBanners();
-            alert("Banner qoshildi!");
+            alert("Bannerlar muvaffaqiyatli qoshildi!");
         }
     </script>
 
     <!-- Firebase Integration Realtime -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-      import { getDatabase, ref, set, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+      import { getDatabase, ref, set, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyBY9JPfML0PPX5jyxKqC_Ox9GXVeqYIcEE",
@@ -453,24 +511,16 @@
       const app = initializeApp(firebaseConfig);
       const db = getDatabase(app);
 
-      const defaultBanners = [
-          "https://images.unsplash.com/photo-1584813470613-5b1c1cad3d69?auto=format&fit=crop&w=800&q=80",
-          "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=800&q=80"
-      ];
-
-      // Sync Banners
       onValue(ref(db, 'banners'), (snapshot) => {
           const data = snapshot.val();
           if (data) {
               banners = Array.isArray(data) ? data : Object.values(data);
           } else {
-              set(ref(db, 'banners'), defaultBanners);
-              banners = defaultBanners;
+              banners = [];
           }
           renderBanners();
       });
 
-      // Sync Products
       onValue(ref(db, 'products'), (snapshot) => {
           const data = snapshot.val();
           products = [];
@@ -482,12 +532,10 @@
           renderProducts();
       });
 
-      // Sync Orders
       onValue(ref(db, 'orders'), (snapshot) => {
           const data = snapshot.val();
           orders = data || {};
-          // If admin panel or my orders is active, re-render them
-          if(document.getElementById('adminScreen').style.display === 'block') {
+          if(currentUser && currentUser.role === 'admin') {
               renderAdminPanel();
           }
       });
@@ -495,6 +543,10 @@
       window.saveProductToFirebase = function(prod) {
           const newRef = push(ref(db, 'products'));
           set(newRef, prod);
+      };
+
+      window.deleteProductFromFirebase = function(productId) {
+          remove(ref(db, 'products/' + productId));
       };
 
       window.saveBannersToFirebase = function(banList) {
@@ -509,6 +561,17 @@
       window.updateOrderStatusInFirebase = function(orderId, newStatus) {
           update(ref(db, 'orders/' + orderId), { status: newStatus });
       };
+
+      window.addEventListener('DOMContentLoaded', () => {
+          const savedUser = localStorage.getItem('currentUser');
+          if(savedUser) {
+              currentUser = JSON.parse(savedUser);
+              document.getElementById('authScreen').style.display = 'none';
+              document.getElementById('mainNavBar').style.display = 'flex';
+              switchTab('catalog');
+          }
+      });
     </script>
 </body>
-</html>
+    </html>
+    
