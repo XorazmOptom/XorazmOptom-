@@ -8,7 +8,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
         body { background-color: #f4f5f7; padding-bottom: 70px; }
         
-        /* Marketplace Header */
         header { background: #ffffff; color: #111; padding: 12px 15px; text-align: center; font-size: 16px; font-weight: bold; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         header .brand { color: #7f00ff; font-size: 18px; }
         header .user-badge { font-size: 13px; background: #f0f0f0; padding: 4px 10px; border-radius: 12px; color: #333; }
@@ -19,14 +18,14 @@
         .auth-box { background: white; padding: 20px; border-radius: 12px; margin-top: 50px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .auth-title { text-align: center; margin-bottom: 15px; color: #111; font-size: 20px; }
 
-        /* Banner Karusel (Marketplace style) */
+        /* Banner Karusel */
         .carousel-container { position: relative; width: 100%; height: 140px; border-radius: 10px; overflow: hidden; margin-bottom: 10px; background: #eee; }
         .carousel-track { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
         .carousel-track::-webkit-scrollbar { display: none; }
         .carousel-slide { min-width: 100%; height: 100%; scroll-snap-align: start; flex-shrink: 0; }
         .carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Marketplace Product Grid (Uzum/Temu style) */
+        /* Marketplace Product Grid */
         .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .card { background: white; border-radius: 8px; padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; position: relative; }
         .card img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; }
@@ -34,7 +33,7 @@
         .card-price { font-size: 14px; color: #ff5722; font-weight: bold; margin-top: 4px; }
         .card-opt { font-size: 10px; color: #666; margin-top: 2px; }
 
-        /* Qty & Add to Cart Controls */
+        /* Qty Controls */
         .qty-box { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; background: #f9f9f9; border-radius: 6px; padding: 2px; }
         .qty-btn { background: #fff; border: 1px solid #ddd; width: 26px; height: 26px; border-radius: 4px; font-weight: bold; cursor: pointer; color: #333; }
         .qty-input { width: 30px; text-align: center; border: none; background: transparent; font-size: 12px; font-weight: bold; }
@@ -47,7 +46,6 @@
         .btn { background: #7f00ff; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .form-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
         
-        /* Status Badges */
         .status-badge { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; }
         .status-delivered { background: #10b981; }
     </style>
@@ -95,7 +93,7 @@
             </div>
         </div>
 
-        <!-- 4. ADMIN PANEL -->
+        <!-- 4. ADMIN PANEL (Tovarlar va Bannerlar) -->
         <div id="adminScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
                 <h3>Yangi tovar qo'shish</h3>
@@ -114,8 +112,13 @@
                 <button class="btn" onclick="addNewBanners()" style="background: #2563eb;">Bannerlarni yuklash</button>
             </div>
 
+            <button class="btn" onclick="logout()" style="background: #dc2626; margin-bottom: 20px;">Tizimdan chiqish</button>
+        </div>
+
+        <!-- 5. ADMIN STATS SCREEN (Reyting va Tarix) -->
+        <div id="adminStatsScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Xaridorlar reytingi (Sovg'a ulashish uchun)</h3>
+                <h3>Xaridorlar reytingi</h3>
                 <div id="adminCustomersList" style="margin-top: 10px; font-size: 13px;"></div>
             </div>
 
@@ -123,16 +126,14 @@
                 <h3>Yetkazib berilgan buyurtmalar tarixi</h3>
                 <div id="adminOrdersList" style="margin-top: 10px;"></div>
             </div>
-
-            <button class="btn" onclick="logout()" style="background: #dc2626;">Tizimdan chiqish</button>
+            
+            <button class="btn" onclick="logout()" style="background: #dc2626; margin-bottom: 20px;">Tizimdan chiqish</button>
         </div>
     </div>
 
     <!-- Bottom Navigation Bar -->
     <div class="nav-bar" id="mainNavBar">
-        <div class="nav-item active" onclick="switchTab('catalog')">Katalog</div>
-        <div class="nav-item" onclick="switchTab('cart')">Savatcha</div>
-        <div class="nav-item" onclick="switchTab('myOrders')">Buyurtmalarim</div>
+        <!-- Dinamik ravishda xaridor yoki admin menyusi chiqadi -->
     </div>
 
     <script>
@@ -153,22 +154,22 @@
                 return;
             }
 
-            // Maxfiy admin tekshiruvi (faqat o'zingiz bilasiz)
+            // Maxfiy admin tekshiruvi
             if (name === "XorazmOptom" && phone === "XorazmOptomAdmin" && pass === "525455") {
                 currentUser = { role: 'admin', name: 'Admin', phone };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                setupNavigation();
                 document.getElementById('authScreen').style.display = 'none';
-                document.getElementById('adminScreen').style.display = 'block';
-                document.getElementById('mainNavBar').style.display = 'none';
                 document.getElementById('headerUserBadge').innerText = "Admin";
-                renderAdminPanel();
+                switchTab('catalog');
                 return;
             }
 
             // Xaridor rejimi
             currentUser = { role: 'buyer', name, phone };
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            setupNavigation();
             document.getElementById('authScreen').style.display = 'none';
-            document.getElementById('mainNavBar').style.display = 'flex';
             document.getElementById('headerUserBadge').innerText = currentUser.name;
             switchTab('catalog');
         }
@@ -177,6 +178,7 @@
             currentUser = null;
             localStorage.removeItem('currentUser');
             document.getElementById('adminScreen').style.display = 'none';
+            document.getElementById('adminStatsScreen').style.display = 'none';
             document.getElementById('catalogScreen').style.display = 'none';
             document.getElementById('cartScreen').style.display = 'none';
             document.getElementById('myOrdersScreen').style.display = 'none';
@@ -185,21 +187,41 @@
             document.getElementById('headerUserBadge').innerText = "Mehmon";
         }
 
+        function setupNavigation() {
+            const navBar = document.getElementById('mainNavBar');
+            navBar.style.display = 'flex';
+            if (currentUser.role === 'admin') {
+                navBar.innerHTML = `
+                    <div class="nav-item active" onclick="switchTab('catalog')">Katalog</div>
+                    <div class="nav-item" onclick="switchTab('admin')">Tovar & Banner</div>
+                    <div class="nav-item" onclick="switchTab('adminStats')">Reyting & Tarix</div>
+                `;
+            } else {
+                navBar.innerHTML = `
+                    <div class="nav-item active" onclick="switchTab('catalog')">Katalog</div>
+                    <div class="nav-item" onclick="switchTab('cart')">Savatcha</div>
+                    <div class="nav-item" onclick="switchTab('myOrders')">Buyurtmalarim</div>
+                `;
+            }
+        }
+
         function switchTab(tab) {
             document.getElementById('catalogScreen').style.display = tab === 'catalog' ? 'block' : 'none';
             document.getElementById('cartScreen').style.display = tab === 'cart' ? 'block' : 'none';
             document.getElementById('myOrdersScreen').style.display = tab === 'myOrders' ? 'block' : 'none';
             document.getElementById('adminScreen').style.display = tab === 'admin' ? 'block' : 'none';
+            document.getElementById('adminStatsScreen').style.display = tab === 'adminStats' ? 'block' : 'none';
             
             const items = document.querySelectorAll('.nav-item');
-            if(items.length >= 3) {
-                items[0].classList.toggle('active', tab === 'catalog');
-                items[1].classList.toggle('active', tab === 'cart');
-                items[2].classList.toggle('active', tab === 'myOrders');
-            }
+            items.forEach(item => item.classList.remove('active'));
+            
+            if(tab === 'catalog') items[0]?.classList.add('active');
+            if(tab === 'cart' || tab === 'admin') items[1]?.classList.add('active');
+            if(tab === 'myOrders' || tab === 'adminStats') items[2]?.classList.add('active');
 
             if (tab === 'cart') renderCart();
             if (tab === 'myOrders') renderMyOrders();
+            if (tab === 'adminStats') renderAdminPanel();
         }
 
         function getProductPrice(p, qty) {
@@ -293,7 +315,7 @@
             });
 
             if (!hasItems) {
-                list.innerHTML = '<p style="color:#777; text-align:center;">Savatchangiz bo\'sh</p>';
+                list.innerHTML = '<p style="color:#777; text-align:center;">Savatchangiz bo'sh</p>';
                 totalBox.innerHTML = '';
             } else {
                 list.innerHTML = html;
@@ -327,7 +349,7 @@
                 clientPhone: currentUser.phone,
                 items: orderItems,
                 total: grandTotal,
-                status: "Tovar qabul qilindi",
+                status: "Yetkazildi",
                 date: new Date().toLocaleString()
             };
 
@@ -537,7 +559,8 @@
       onValue(ref(db, 'orders'), (snapshot) => {
           const data = snapshot.val();
           orders = data || {};
-          if(currentUser && currentUser.role === 'admin') {
+          const adminStats = document.getElementById('adminStatsScreen');
+          if(currentUser && currentUser.role === 'admin' && adminStats && adminStats.style.display === 'block') {
               renderAdminPanel();
           }
       });
@@ -568,9 +591,9 @@
           const savedUser = localStorage.getItem('currentUser');
           if(savedUser) {
               currentUser = JSON.parse(savedUser);
+              setupNavigation();
               document.getElementById('authScreen').style.display = 'none';
-              document.getElementById('mainNavBar').style.display = 'flex';
-              document.getElementById('headerUserBadge').innerText = currentUser.name;
+              document.getElementById('headerUserBadge').innerText = currentUser.name === 'Admin' ? 'Admin' : currentUser.name;
               switchTab('catalog');
           }
       });
