@@ -430,28 +430,28 @@
                 const currentPrice = getProductPrice(p, qty || 1);
                 const coverImg = p.images && p.images.length > 0 ? p.images[0] : 'https://via.placeholder.com/150';
                 const imgBadge = p.images && p.images.length > 1 ? `<div class="img-count-badge">📷 ${p.images.length}</div>` : '';
-                const delBtn = isAdmin ? `<button class="btn-del" onclick="deleteProduct(${p.id})">✕</button>` : '';
+                const delBtn = isAdmin ? `<button class="btn-del" onclick="deleteProduct('${p.id}')">✕</button>` : '';
                 const optText = p.p5 ? `Optom: 5+ (${p.p5.toLocaleString()}), 10+ (${p.p10.toLocaleString()})` : '';
 
                 return `
                 <div class="card">
                     ${delBtn}
-                    <div class="card-img-wrap" onclick="openModal(${p.id})">
+                    <div class="card-img-wrap" onclick="openModal('${p.id}')">
                         <img src="${coverImg}">
                         ${imgBadge}
                     </div>
                     <div class="card-content">
                         <div>
-                            <div class="card-title" onclick="openModal(${p.id})">${p.title}</div>
+                            <div class="card-title" onclick="openModal('${p.id}')">${p.title}</div>
                             <div class="card-desc">${p.desc.substring(0, 35)}...</div>
                         </div>
                         <div>
                             <div class="card-price">${currentPrice.toLocaleString()} сўм</div>
                             <div class="card-opt-info">${optText}</div>
                             <div class="qty-controls">
-                                <button class="btn-qty" onclick="changeQty(${p.id}, -1)">-</button>
-                                <input type="number" class="input-qty" id="qty_${p.id}" value="${qty}" min="0" onchange="manualInput(${p.id}, this.value)">
-                                <button class="btn-qty" onclick="changeQty(${p.id}, 1)">+</button>
+                                <button class="btn-qty" onclick="changeQty('${p.id}', -1)">-</button>
+                                <input type="number" class="input-qty" id="qty_${p.id}" value="${qty}" min="0" onchange="manualInput('${p.id}', this.value)">
+                                <button class="btn-qty" onclick="changeQty('${p.id}', 1)">+</button>
                             </div>
                         </div>
                     </div>
@@ -484,11 +484,11 @@
                             </div>
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <div class="qty-controls" style="width:100px;">
-                                    <button class="btn-qty" onclick="changeQty(${p.id}, -1); openCartModal();">-</button>
-                                    <input type="number" class="input-qty" value="${cart[p.id]}" min="0" onchange="manualInput(${p.id}, this.value); openCartModal();">
-                                    <button class="btn-qty" onclick="changeQty(${p.id}, 1); openCartModal();">+</button>
+                                    <button class="btn-qty" onclick="changeQty('${p.id}', -1); openCartModal();">-</button>
+                                    <input type="number" class="input-qty" value="${cart[p.id]}" min="0" onchange="manualInput('${p.id}', this.value); openCartModal();">
+                                    <button class="btn-qty" onclick="changeQty('${p.id}', 1); openCartModal();">+</button>
                                 </div>
-                                <button class="btn-remove-item" onclick="removeItemFromCart(${p.id})">🗑️</button>
+                                <button class="btn-remove-item" onclick="removeItemFromCart('${p.id}')">🗑️</button>
                             </div>
                         </div>`;
                     }
@@ -508,7 +508,7 @@
         }
 
         function openModal(id) {
-            const p = products.find(prod => prod.id === id);
+            const p = products.find(prod => prod.id == id);
             if(!p) return;
             activeModalProdId = id;
 
@@ -596,7 +596,6 @@
             }
 
             const newProd = {
-                id: Date.now(),
                 category: cat,
                 title: title,
                 desc: desc || "Маҳсулот ҳақида маълумот йўқ",
@@ -606,9 +605,8 @@
                 images: tempMultipleImages
             };
 
-            let newProductsList = [newProd, ...products];
-            if (window.saveProductsToFirebase) {
-                window.saveProductsToFirebase(newProductsList);
+            if (window.addNewProductToFirebase) {
+                window.addNewProductToFirebase(newProd);
             }
 
             document.getElementById('newTitle').value = "";
@@ -620,15 +618,14 @@
             document.getElementById('filePreviewCount').innerText = "";
             tempMultipleImages = [];
 
-            alert('Маҳсулот оптом нархлари билан қўшилди!');
+            alert('Маҳсулот оптом нархları билан қўшилди!');
             switchTab('catalog');
         }
 
         function deleteProduct(id) {
             if(confirm('Маҳсулотни ўчирмоқчимисиз?')) {
-                let newProductsList = products.filter(p => p.id !== id);
-                if (window.saveProductsToFirebase) {
-                    window.saveProductsToFirebase(newProductsList);
+                if (window.deleteProductFromFirebase) {
+                    window.deleteProductFromFirebase(id);
                 }
             }
         }
@@ -779,7 +776,7 @@
     <!-- Firebase Realtime Database XorazmOptom -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-      import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+      import { getDatabase, ref, set, onValue, update, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyBY9JPfML0PPX5jyxKqC_Ox9GXVeqYIcEE",
@@ -794,17 +791,16 @@
       const app = initializeApp(firebaseConfig);
       const db = getDatabase(app);
 
-      // Boshlang'ich default tovarlar va bannerlar (agar baza bo'sh bo'lsa)
       const defaultBanners = [
           "https://images.unsplash.com/photo-1584813470613-5b1c1cad3d69?auto=format&fit=crop&w=800&q=80",
           "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=800&q=80"
       ];
-      const defaultProducts = [
-          { id: 1, category: "Маиший кимё", title: "Shengbolan Кир ювиш воситаси", desc: "3000 ml. Махсус B2B формула.", p1: 53000, p5: 50000, p10: 47000, images: ["https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=500&q=80"] },
-          { id: 2, category: "Маиший кимё", title: "Shengbolan AIX Тозаловчи", desc: "1200 ml. Ошхона тозалагич.", p1: 18000, p5: 17000, p10: 16000, images: ["https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=500&q=80"] }
-      ];
+      
+      const defaultProducts = {
+          "prod1": { category: "Маиший кимё", title: "Shengbolan Кир ювиш воситаси", desc: "3000 ml. Махсус B2B формула.", p1: 53000, p5: 50000, p10: 47000, images: ["https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=500&q=80"] },
+          "prod2": { category: "Маиший кимё", title: "Shengbolan AIX Тозаловчи", desc: "1200 ml. Ошхона тозалагич.", p1: 18000, p5: 17000, p10: 16000, images: ["https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=500&q=80"] }
+      };
 
-      // Realtime listeners (Barcha o'zgarishlarni avtomatik qabul qilish)
       onValue(ref(db, 'banners'), (snapshot) => {
           const val = snapshot.val();
           if (val) {
@@ -819,12 +815,25 @@
 
       onValue(ref(db, 'products'), (snapshot) => {
           const val = snapshot.val();
+          let loadedProducts = [];
           if (val) {
-              window.products = val;
+              for (let id in val) {
+                  loadedProducts.push({
+                      id: id,
+                      category: val[id].category,
+                      title: val[id].title,
+                      desc: val[id].desc,
+                      p1: val[id].p1 || val[id].price || 0,
+                      p5: val[id].p5 || val[id].p1 || 0,
+                      p10: val[id].p10 || val[id].p5 || 0,
+                      images: val[id].images || []
+                  });
+              }
           } else {
               set(ref(db, 'products'), defaultProducts);
-              window.products = defaultProducts;
+              return;
           }
+          window.products = loadedProducts;
           if (typeof renderProducts === 'function') renderProducts();
       });
 
@@ -850,13 +859,17 @@
           if (typeof renderAdminBuyerRating === 'function') renderAdminBuyerRating();
       });
 
-      // Ma'lumotlarni Firebasega saqlash funksiyalari
       window.saveBannersToFirebase = function(newBanners) {
           set(ref(db, 'banners'), newBanners);
       };
 
-      window.saveProductsToFirebase = function(newProducts) {
-          set(ref(db, 'products'), newProducts);
+      window.addNewProductToFirebase = function(newProd) {
+          const newProductRef = push(ref(db, 'products'));
+          set(newProductRef, newProd);
+      };
+
+      window.deleteProductFromFirebase = function(id) {
+          remove(ref(db, 'products/' + id));
       };
 
       window.createOrder = function(orderId, customerName, phone, date, items, totalAmount) {
