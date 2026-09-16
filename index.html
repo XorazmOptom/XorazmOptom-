@@ -10,12 +10,14 @@
         header { background: #1e3c72; color: white; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; position: sticky; top: 0; z-index: 100; }
         .container { padding: 10px; max-width: 600px; margin: 0 auto; }
         
-        /* Karusel Banner */
-        .carousel { position: relative; width: 100%; height: 150px; border-radius: 10px; overflow: hidden; margin-bottom: 12px; background: #ddd; }
-        .carousel img { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .carousel img.active { display: block; }
+        /* Banner Slider (Swipeable & Auto 3s) */
+        .carousel-container { position: relative; width: 100%; height: 160px; border-radius: 10px; overflow: hidden; margin-bottom: 12px; background: #ddd; }
+        .carousel-track { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+        .carousel-track::-webkit-scrollbar { display: none; }
+        .carousel-slide { min-width: 100%; height: 100%; scroll-snap-align: start; flex-shrink: 0; }
+        .carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Mahsulot kartochkasi */
+        /* Card Style */
         .card { background: white; border-radius: 10px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; gap: 10px; align-items: center; }
         .card img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
         .card-info { flex-grow: 1; }
@@ -23,17 +25,25 @@
         .card-price { font-size: 13px; color: #059669; font-weight: bold; margin-top: 4px; }
         .card-opt { font-size: 11px; color: #2563eb; margin-top: 2px; }
 
-        /* Miqdor boshqaruvi */
+        /* Qty Box */
         .qty-box { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
         .qty-btn { background: #e5e7eb; border: none; width: 26px; height: 26px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .qty-input { width: 35px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
 
+        /* Bottom Navigation */
         .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #ddd; z-index: 100; }
-        .nav-item { font-size: 12px; color: #666; cursor: pointer; font-weight: bold; }
+        .nav-item { font-size: 12px; color: #666; cursor: pointer; font-weight: bold; text-align: center; }
         .nav-item.active { color: #1e3c72; }
         
         .btn { background: #1e3c72; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .form-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        
+        /* Status Badges */
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; }
+        .status-accepted { background: #3b82f6; }
+        .status-way { background: #f59e0b; }
+        .status-delivered { background: #10b981; }
+        .status-cancelled { background: #ef4444; }
     </style>
 </head>
 <body>
@@ -41,78 +51,139 @@
     <header>XorazmOptom</header>
 
     <div class="container">
-        <!-- KATALOG SCREEN -->
+        <!-- 1. CATALOG SCREEN -->
         <div id="catalogScreen">
-            <!-- Karusel Banner -->
-            <div class="carousel" id="carouselBox"></div>
-            <!-- Mahsulotlar ro'yxati -->
+            <div class="carousel-container" id="carouselBox">
+                <div class="carousel-track" id="carouselTrack"></div>
+            </div>
             <div id="productList"></div>
         </div>
 
-        <!-- ADMIN SCREEN -->
-        <div id="adminScreen" style="display:none;">
+        <!-- 2. CART SCREEN -->
+        <div id="cartScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px;">
-                <h3>Yangi mahsulot qo'shish (Optom narxlar bilan)</h3>
-                <input type="text" class="form-input" id="prodTitle" placeholder="Mahsulot nomi">
-                <input type="number" class="form-input" id="price1" placeholder="1 dona narxi (so'm)">
-                <input type="number" class="form-input" id="price5" placeholder="5 dona+ narxi (so'm)">
-                <input type="number" class="form-input" id="price10" placeholder="10 dona+ narxi (so'm)">
-                <input type="text" class="form-input" id="prodImage" placeholder="Rasm havolasi (URL)">
-                <button class="btn" onclick="addProduct()">Qo'shish</button>
+                <h3>Buyurtma berish</h3>
+                <input type="text" class="form-input" id="clientName" placeholder="Ismingiz" style="margin-top:10px;">
+                <input type="text" class="form-input" id="clientPhone" placeholder="Telefon raqamingiz (+998...)">
+                <div id="cartList" style="margin-top: 10px;"></div>
+                <div id="cartTotal" style="font-weight: bold; margin-top: 15px; font-size: 16px;"></div>
+                <button class="btn" onclick="submitOrder()" style="background: #059669; margin-top: 15px;">Buyurtmani tasdiqlash</button>
+            </div>
+        </div>
+
+        <!-- 3. MY ORDERS SCREEN (Buyer) -->
+        <div id="myOrdersScreen" style="display:none;">
+            <div style="background:white; padding:15px; border-radius:10px;">
+                <h3>Mening buyurtmalarim</h3>
+                <div id="myOrdersList" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+
+        <!-- 4. ADMIN PANEL -->
+        <div id="adminScreen" style="display:none;">
+            <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
+                <h3>Mahsulot qo'shish</h3>
+                <input type="text" class="form-input" id="prodTitle" placeholder="Mahsulot nomi" style="margin-top:10px;">
+                <input type="number" class="form-input" id="price1" placeholder="1 dona narxi">
+                <input type="number" class="form-input" id="price5" placeholder="5 dona+ narxi">
+                <input type="number" class="form-input" id="price10" placeholder="10 dona+ narxi">
+                <input type="text" class="form-input" id="prodImage" placeholder="Rasm havolasi URL">
+                <button class="btn" onclick="addNewProduct()">Qo'shish</button>
+            </div>
+
+            <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
+                <h3>Banner qo'shish</h3>
+                <input type="text" class="form-input" id="bannerImage" placeholder="Banner rasm havolasi URL" style="margin-top:10px;">
+                <button class="btn" onclick="addNewBanner()" style="background: #2563eb;">Banner qo'shish</button>
+            </div>
+
+            <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
+                <h3>Mijozlar reytingi (Sovg'a ulashish uchun)</h3>
+                <div id="adminCustomersList" style="margin-top: 10px; font-size: 13px;"></div>
+            </div>
+
+            <div style="background:white; padding:15px; border-radius:10px;">
+                <h3>Barcha buyurtmalar tarixi</h3>
+                <div id="adminOrdersList" style="margin-top: 10px;"></div>
+                <button class="btn" onclick="switchTab('catalog')" style="background: #6b7280; margin-top: 15px;">Katalogga qaytish</button>
             </div>
         </div>
     </div>
 
-    <div class="nav-bar">
-        <div class="nav-item active" onclick="switchTab('catalog')">🛒 Katalog</div>
-        <div class="nav-item" onclick="switchTab('admin')">⚙️ Admin</div>
+    <!-- Bottom Navigation Bar -->
+    <div class="nav-bar" id="mainNavBar">
+        <div class="nav-item active" onclick="switchTab('catalog')">Katalog</div>
+        <div class="nav-item" onclick="switchTab('cart')">Savatcha</div>
+        <div class="nav-item" onclick="switchTab('myOrders')">Buyurtmalarim</div>
+        <div class="nav-item" onclick="checkAdmin()" style="color: #9ca3af; font-size: 11px;">Admin</div>
     </div>
 
     <script>
         let products = [];
         let banners = [];
-        let cart = {}; // Har bir mahsulot soni: { id: miqdor }
-        let currentSlide = 0;
+        let orders = [];
+        let cart = {}; 
+        let autoSlideTimer = null;
 
         function switchTab(tab) {
             document.getElementById('catalogScreen').style.display = tab === 'catalog' ? 'block' : 'none';
+            document.getElementById('cartScreen').style.display = tab === 'cart' ? 'block' : 'none';
+            document.getElementById('myOrdersScreen').style.display = tab === 'myOrders' ? 'block' : 'none';
             document.getElementById('adminScreen').style.display = tab === 'admin' ? 'block' : 'none';
             
+            document.getElementById('mainNavBar').style.display = tab === 'admin' ? 'none' : 'flex';
+
             const items = document.querySelectorAll('.nav-item');
-            items[0].classList.toggle('active', tab === 'catalog');
-            items[1].classList.toggle('active', tab === 'admin');
+            if(items.length >= 3) {
+                items[0].classList.toggle('active', tab === 'catalog');
+                items[1].classList.toggle('active', tab === 'cart');
+                items[2].classList.toggle('active', tab === 'myOrders');
+            }
+
+            if (tab === 'cart') renderCart();
+            if (tab === 'myOrders') renderMyOrders();
+            if (tab === 'admin') renderAdminPanel();
         }
 
-        // Miqdorga qarab narxni ҳisoblash (Optom skidka)
+        function checkAdmin() {
+            let password = prompt("Admin parolini kiriting:");
+            if (password === "777") {
+                switchTab('admin');
+            } else if (password !== null) {
+                alert("Parol notogri!");
+            }
+        }
+
         function getProductPrice(p, qty) {
             if (qty >= 10 && p.p10) return Number(p.p10);
             if (qty >= 5 && p.p5) return Number(p.p5);
-            return Number(p.p1 || p.price || 0);
+            return Number(p.p1 || 0);
         }
 
+        // Banners Rendering with Auto 3s slide & Touch Swipe support
         function renderBanners() {
-            const box = document.getElementById('carouselBox');
+            const track = document.getElementById('carouselTrack');
             if (!banners || banners.length === 0) {
-                box.style.display = 'none';
+                document.getElementById('carouselBox').style.display = 'none';
                 return;
             }
-            box.style.display = 'block';
-            box.innerHTML = banners.map((b, i) => `<img src="${b}" class="${i === 0 ? 'active' : ''}">`).join('');
+            document.getElementById('carouselBox').style.display = 'block';
+            track.innerHTML = banners.map(b => `<div class="carousel-slide"><img src="${b}"></div>`).join('');
             
-            // Har 4 sekundda slaydni almashtirish
-            setInterval(() => {
-                const imgs = box.querySelectorAll('img');
-                if(imgs.length === 0) return;
-                imgs[currentSlide].classList.remove('active');
-                currentSlide = (currentSlide + 1) % imgs.length;
-                imgs[currentSlide].classList.add('active');
-            }, 4000);
+            if (autoSlideTimer) clearInterval(autoSlideTimer);
+            
+            let index = 0;
+            autoSlideTimer = setInterval(() => {
+                if(track.children.length === 0) return;
+                index = (index + 1) % track.children.length;
+                track.scrollTo({ left: track.children[index].offsetLeft, behavior: 'smooth' });
+            }, 3000);
         }
 
         function renderProducts() {
             const list = document.getElementById('productList');
             if(products.length === 0) {
-                list.innerHTML = '<p style="text-align:center; color:#777; margin-top:20px;">Mahsulotlar yo\'q</p>';
+                list.innerHTML = '<p style="text-align:center; color:#777; margin-top:20px;">Mahsulotlar mavjud emas</p>';
                 return;
             }
             list.innerHTML = products.map(p => {
@@ -125,11 +196,11 @@
                     <img src="${p.image || 'https://via.placeholder.com/80'}">
                     <div class="card-info">
                         <div class="card-title">${p.title}</div>
-                        <div class="card-price">${currentPrice.toLocaleString()} so'm / dona</div>
+                        <div class="card-price">${currentPrice.toLocaleString()} som / dona</div>
                         <div class="card-opt">${optText}</div>
                         <div class="qty-box">
                             <button class="qty-btn" onclick="changeQty('${p.id}', -1)">-</button>
-                            <input type="number" class="qty-input" id="qty_${p.id}" value="${qty}" min="0" onchange="manualQty('${p.id}', this.value)">
+                            <input type="number" class="qty-input" value="${qty}" min="0" onchange="manualQty('${p.id}', this.value)">
                             <button class="qty-btn" onclick="changeQty('${p.id}', 1)">+</button>
                         </div>
                     </div>
@@ -147,12 +218,188 @@
             renderProducts();
         }
 
-        function addProduct() {
-            const title = document.getElementById('prodTitle').value;
-            const p1 = document.getElementById('price1').value;
-            const p5 = document.getElementById('price5').value || p1;
-            const p10 = document.getElementById('price10').value || p5;
-            const image = document.getElementById('prodImage').value;
+        function renderCart() {
+            const list = document.getElementById('cartList');
+            const totalBox = document.getElementById('cartTotal');
+            let html = '';
+            let grandTotal = 0;
+            let hasItems = false;
+
+            products.forEach(p => {
+                let qty = cart[p.id] || 0;
+                if (qty > 0) {
+                    hasItems = true;
+                    let price = getProductPrice(p, qty);
+                    let sum = price * qty;
+                    grandTotal += sum;
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; border-bottom:1px solid #eee; padding-bottom:5px;">
+                        <span>${p.title} (${qty} dona)</span>
+                        <b>${sum.toLocaleString()} som</b>
+                    </div>`;
+                }
+            });
+
+            if (!hasItems) {
+                list.innerHTML = '<p style="color:#777; text-align:center;">Savatchangiz bosh</p>';
+                totalBox.innerHTML = '';
+            } else {
+                list.innerHTML = html;
+                totalBox.innerHTML = `Umumiy summa: ${grandTotal.toLocaleString()} som`;
+            }
+        }
+
+        function submitOrder() {
+            const name = document.getElementById('clientName').value.trim();
+            const phone = document.getElementById('clientPhone').value.trim();
+
+            if(!name || !phone) {
+                alert("Ism va telefon raqamingizni kiriting!");
+                return;
+            }
+
+            let orderItems = [];
+            let grandTotal = 0;
+
+            products.forEach(p => {
+                let qty = cart[p.id] || 0;
+                if (qty > 0) {
+                    let price = getProductPrice(p, qty);
+                    let sum = price * qty;
+                    grandTotal += sum;
+                    orderItems.push({ title: p.title, qty: qty, price: price, sum: sum });
+                }
+            });
+
+            if (orderItems.length === 0) {
+                alert("Savatchada mahsulot yoq!");
+                return;
+            }
+
+            const newOrder = {
+                clientName: name,
+                clientPhone: phone,
+                items: orderItems,
+                total: grandTotal,
+                status: "Tovar qabul qilindi",
+                date: new Date().toLocaleString()
+            };
+
+            if(window.saveOrderToFirebase) {
+                window.saveOrderToFirebase(newOrder);
+            }
+
+            localStorage.setItem('lastClientPhone', phone);
+            cart = {};
+            alert("Buyurtmangiz muvaffaqiyatli yuborildi!");
+            switchTab('myOrders');
+        }
+
+        function renderMyOrders() {
+            const list = document.getElementById('myOrdersList');
+            const userPhone = localStorage.getItem('lastClientPhone');
+            
+            if(!userPhone) {
+                list.innerHTML = '<p style="color:#777; text-align:center;">Siz hali buyurtma bermagansiz</p>';
+                return;
+            }
+
+            let html = '';
+            let found = false;
+
+            for(let id in orders) {
+                let ord = orders[id];
+                if(ord.clientPhone === userPhone) {
+                    found = true;
+                    html += `
+                    <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px;">
+                        <div><b>Sana:</b> ${ord.date}</div>
+                        <div><b>Mijoz:</b> ${ord.clientName} (${ord.clientPhone})</div>
+                        <div style="margin:5px 0;"><b>Status:</b> <span class="status-badge status-accepted">${ord.status}</span></div>
+                        <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} som</div>
+                    </div>`;
+                }
+            }
+
+            if(!found) {
+                list.innerHTML = '<p style="color:#777; text-align:center;">Buyurtmalar topilmadi</p>';
+            } else {
+                list.innerHTML = html;
+            }
+        }
+
+        function renderAdminPanel() {
+            // Orders list
+            const ordersDiv = document.getElementById('adminOrdersList');
+            let ordersHtml = '';
+            let customersMap = {};
+
+            if (!orders || Object.keys(orders).length === 0) {
+                ordersDiv.innerHTML = '<p style="color:#777;">Buyurtmalar mavjud emas</p>';
+            } else {
+                for (let id in orders) {
+                    let ord = orders[id];
+                    
+                    // Collect customer stats for ratings/gifts
+                    if(ord.clientPhone) {
+                        if(!customersMap[ord.clientPhone]) {
+                            customersMap[ord.clientPhone] = { name: ord.clientName, phone: ord.clientPhone, totalSpent: 0, orderCount: 0 };
+                        }
+                        customersMap[ord.clientPhone].totalSpent += Number(ord.total || 0);
+                        customersMap[ord.clientPhone].orderCount += 1;
+                    }
+
+                    let badgeClass = 'status-accepted';
+                    if(ord.status === 'Yolda') badgeClass = 'status-way';
+                    if(ord.status === 'Yetkazildi') badgeClass = 'status-delivered';
+                    if(ord.status === 'Bekor qilindi') badgeClass = 'status-cancelled';
+
+                    ordersHtml += `
+                    <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px; background:#fafafa;">
+                        <div><b>Mijoz:</b> ${ord.clientName} (${ord.clientPhone})</div>
+                        <div><b>Sana:</b> ${ord.date}</div>
+                        <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} som</div>
+                        <div style="margin:5px 0;"><b>Holat:</b> <span class="status-badge ${badgeClass}">${ord.status}</span></div>
+                        <div style="margin-top:8px; display:flex; gap:5px; flex-wrap:wrap;">
+                            <button onclick="updateOrderStatus('${id}', 'Tovar qabul qilindi')" style="background:#3b82f6; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Qabul qilindi</button>
+                            <button onclick="updateOrderStatus('${id}', 'Yolda')" style="background:#f59e0b; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Yolda</button>
+                            <button onclick="updateOrderStatus('${id}', 'Yetkazildi')" style="background:#10b981; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Yetkazildi</button>
+                            <button onclick="updateOrderStatus('${id}', 'Bekor qilindi')" style="background:#ef4444; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Bekor qilindi</button>
+                        </div>
+                    </div>`;
+                }
+                ordersDiv.innerHTML = ordersHtml;
+            }
+
+            // Customers Rating List for Gifts
+            const customersDiv = document.getElementById('adminCustomersList');
+            let custHtml = '';
+            let custArr = Object.values(customersMap).sort((a,b) => b.totalSpent - a.totalSpent);
+
+            if(custArr.length === 0) {
+                custDiv = '<p style="color:#777;">Mijozlar toplangani yoq</p>';
+            } else {
+                custArr.forEach((c, idx) => {
+                    custHtml += `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:5px 0;">
+                        <span><b>${idx+1}. ${c.name}</b> (${c.phone})</span>
+                        <span><b>${c.orderCount} ta buyurtma</b> | ${c.totalSpent.toLocaleString()} som</span>
+                    </div>`;
+                });
+                customersDiv.innerHTML = custHtml;
+            }
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            if(window.updateOrderStatusInFirebase) {
+                window.updateOrderStatusInFirebase(orderId, newStatus);
+            }
+        }
+
+        function addNewProduct() {
+            const title = document.getElementById('prodTitle').value.trim();
+            const p1 = document.getElementById('price1').value.trim();
+            const p5 = document.getElementById('price5').value.trim() || p1;
+            const p10 = document.getElementById('price10').value.trim() || p5;
+            const image = document.getElementById('prodImage').value.trim();
 
             if(!title || !p1) {
                 alert('Mahsulot nomi va 1 dona narxini kiriting!');
@@ -160,7 +407,7 @@
             }
 
             if(window.saveProductToFirebase) {
-                window.saveProductToFirebase({ title, p1, p5, p10, image, price: p1 });
+                window.saveProductToFirebase({ title, p1, p5, p10, image });
             }
 
             document.getElementById('prodTitle').value = '';
@@ -168,13 +415,30 @@
             document.getElementById('price5').value = '';
             document.getElementById('price10').value = '';
             document.getElementById('prodImage').value = '';
+            alert("Mahsulot qoshildi!");
             switchTab('catalog');
+        }
+
+        function addNewBanner() {
+            const imgUrl = document.getElementById('bannerImage').value.trim();
+            if(!imgUrl) {
+                alert('Banner rasm havolasini kiriting!');
+                return;
+            }
+            banners.push(imgUrl);
+            if(window.saveBannersToFirebase) {
+                window.saveBannersToFirebase(banners);
+            }
+            document.getElementById('bannerImage').value = '';
+            renderBanners();
+            alert("Banner qoshildi!");
         }
     </script>
 
+    <!-- Firebase Integration Realtime -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-      import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+      import { getDatabase, ref, set, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyBY9JPfML0PPX5jyxKqC_Ox9GXVeqYIcEE",
@@ -189,13 +453,12 @@
       const app = initializeApp(firebaseConfig);
       const db = getDatabase(app);
 
-      // Standart bannerlar (agar bazada bo'lmasa)
       const defaultBanners = [
           "https://images.unsplash.com/photo-1584813470613-5b1c1cad3d69?auto=format&fit=crop&w=800&q=80",
           "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=800&q=80"
       ];
 
-      // Bannerlarni o'qish
+      // Sync Banners
       onValue(ref(db, 'banners'), (snapshot) => {
           const data = snapshot.val();
           if (data) {
@@ -207,16 +470,11 @@
           renderBanners();
       });
 
-      // Mahsulotlarni o'qish
+      // Sync Products
       onValue(ref(db, 'products'), (snapshot) => {
           const data = snapshot.val();
           products = [];
           if (data) {
-              for (let id in data) {
-                  products.push({ id, ...data[data[id] ? id : ''] });
-              }
-              // To'g'ridan-to'g'ri massivga o'rash
-              products = [];
               for (let id in data) {
                   products.push({ id: id, ...data[id] });
               }
@@ -224,10 +482,32 @@
           renderProducts();
       });
 
-      // Bazaga mahsulot yozish
+      // Sync Orders
+      onValue(ref(db, 'orders'), (snapshot) => {
+          const data = snapshot.val();
+          orders = data || {};
+          // If admin panel or my orders is active, re-render them
+          if(document.getElementById('adminScreen').style.display === 'block') {
+              renderAdminPanel();
+          }
+      });
+
       window.saveProductToFirebase = function(prod) {
           const newRef = push(ref(db, 'products'));
           set(newRef, prod);
+      };
+
+      window.saveBannersToFirebase = function(banList) {
+          set(ref(db, 'banners'), banList);
+      };
+
+      window.saveOrderToFirebase = function(ord) {
+          const newRef = push(ref(db, 'orders'));
+          set(newRef, ord);
+      };
+
+      window.updateOrderStatusInFirebase = function(orderId, newStatus) {
+          update(ref(db, 'orders/' + orderId), { status: newStatus });
       };
     </script>
 </body>
