@@ -60,7 +60,12 @@
         .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 12px; padding: 15px; max-height: 90vh; overflow-y: auto; position: relative; }
         .close-modal { position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; cursor: pointer; color: #777; }
         .modal-img-container { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; scrollbar-width: thin; }
-        .modal-img-container img { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid #eee; }
+        .modal-img-container img { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid #eee; cursor: pointer; transition: transform 0.2s; }
+        .modal-img-container img:hover { transform: scale(1.03); }
+
+        /* Fullscreen Image Zoom Modal */
+        .zoom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
+        .zoom-modal img { max-width: 95%; max-height: 90vh; object-fit: contain; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -165,8 +170,15 @@
             <span class="close-modal" onclick="closeProductModal()">&times;</span>
             <h3 id="modalTitle" style="margin-bottom: 10px; font-size: 16px; padding-right: 20px;"></h3>
             <div class="modal-img-container" id="modalImages"></div>
-            <div id="modalPrices" style="font-size: 14px; color: #333; line-height: 1.6;"></div>
+            <div id="modalPrices" style="font-size: 14px; color: #333; line-height: 1.6; margin-bottom: 10px;"></div>
+            <!-- Modal ichida savatga qo'shish (miqdorni boshqarish) -->
+            <div id="modalQtyContainer"></div>
         </div>
+    </div>
+
+    <!-- Rasmni katta qilib ko'rsatish uchun Lightbox Modal -->
+    <div class="zoom-modal" id="imageZoomModal" onclick="closeZoomModal()">
+        <img id="zoomedImgSrc" src="">
     </div>
 
     <!-- Bottom Navigation Bar -->
@@ -180,6 +192,7 @@
         let autoSlideTimer = null;
         let currentUser = null;
         let activeCategory = 'Barchasi';
+        let currentModalProductId = null;
 
         function handleLogin() {
             const name = document.getElementById('loginShopName').value.trim();
@@ -339,6 +352,7 @@
         }
 
         function openProductModal(id) {
+            currentModalProductId = id;
             const p = products.find(item => item.id === id);
             if(!p) return;
 
@@ -346,7 +360,8 @@
             
             const imgContainer = document.getElementById('modalImages');
             if(p.images && p.images.length > 0) {
-                imgContainer.innerHTML = p.images.map(img => `<img src="${img}">`).join('');
+                // Rasmlarga bosganda kattalashish funksiyasi (openZoomModal) qo'shildi
+                imgContainer.innerHTML = p.images.map(img => `<img src="${img}" onclick="openZoomModal('${img}')">`).join('');
             } else {
                 imgContainer.innerHTML = '<p style="color:#777; font-size:12px;">Rasmlar mavjud emas</p>';
             }
@@ -357,21 +372,55 @@
             if(p.p10) priceInfo += `<b>10 dona+ narxi:</b> ${Number(p.p10).toLocaleString()} so'm`;
 
             document.getElementById('modalPrices').innerHTML = priceInfo;
+
+            // Modal oynada savatchaga qo'shish bloki
+            updateModalQtyView();
             document.getElementById('productModal').style.display = 'flex';
+        }
+
+        function updateModalQtyView() {
+            if(!currentModalProductId) return;
+            const qtyContainer = document.getElementById('modalQtyContainer');
+            const qty = cart[currentModalProductId] || 0;
+
+            qtyContainer.innerHTML = `
+                <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #444;">Miqdorni tanlash:</div>
+                <div class="qty-box" style="padding: 6px;">
+                    <button class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="changeQty('${currentModalProductId}', -1); updateModalQtyView();">-</button>
+                    <input type="number" class="qty-input" style="font-size: 15px; width: 50px;" value="${qty}" min="0" onchange="manualQty('${currentModalProductId}', this.value); updateModalQtyView();">
+                    <button class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="changeQty('${currentModalProductId}', 1); updateModalQtyView();">+</button>
+                </div>
+            `;
         }
 
         function closeProductModal() {
             document.getElementById('productModal').style.display = 'none';
+            currentModalProductId = null;
+        }
+
+        function openZoomModal(imgSrc) {
+            document.getElementById('zoomedImgSrc').src = imgSrc;
+            document.getElementById('imageZoomModal').style.display = 'flex';
+        }
+
+        function closeZoomModal() {
+            document.getElementById('imageZoomModal').style.display = 'none';
         }
 
         function changeQty(id, delta) {
             cart[id] = Math.max(0, (cart[id] || 0) + delta);
             renderProducts();
+            if(currentModalProductId === id) {
+                updateModalQtyView();
+            }
         }
 
         function manualQty(id, val) {
             cart[id] = Math.max(0, parseInt(val) || 0);
             renderProducts();
+            if(currentModalProductId === id) {
+                updateModalQtyView();
+            }
         }
 
         function renderCart() {
