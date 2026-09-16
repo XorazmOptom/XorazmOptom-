@@ -144,9 +144,14 @@
             </div>
 
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Banner qo'shish (Karusel uchun rasmlar)</h3>
+                <h3>Bannerlarni boshqarish (Karusel)</h3>
                 <input type="file" class="form-input" id="bannerImagesInput" multiple accept="image/*" style="margin-top:10px;">
-                <button class="btn" onclick="addNewBanners()" style="background: #2563eb;">Bannerlarni yuklash</button>
+                <button class="btn" onclick="addNewBanners()" style="background: #2563eb;">Yangi bannerlarni yuklash</button>
+                
+                <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                    <label style="font-size: 13px; font-weight: bold; color: #333;">Mavjud bannerlar:</label>
+                    <div id="adminBannerList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
+                </div>
             </div>
 
             <button class="btn" onclick="logout()" style="background: #dc2626; margin-bottom: 20px;">Tizimdan chiqish</button>
@@ -278,6 +283,7 @@
 
             if (tab === 'cart') renderCart();
             if (tab === 'myOrders') renderMyOrders();
+            if (tab === 'admin') renderAdminBannersList();
             if (tab === 'adminStats') renderAdminPanel();
         }
 
@@ -318,6 +324,37 @@
                 index = (index + 1) % track.children.length;
                 track.scrollTo({ left: track.children[index].offsetLeft, behavior: 'smooth' });
             }, 3000);
+        }
+
+        function renderAdminBannersList() {
+            const container = document.getElementById('adminBannerList');
+            if(!container) return;
+
+            if(!banners || banners.length === 0) {
+                container.innerHTML = '<p style="color:#777; font-size:12px;">Hozircha bannerlar mavjud emas</p>';
+                return;
+            }
+
+            container.innerHTML = banners.map((b, index) => `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 6px; border-radius: 6px; border: 1px solid #eee;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="${b}" style="width: 50px; height: 30px; object-fit: cover; border-radius: 4px;">
+                        <span style="font-size: 12px; color: #333;">Banner #${index + 1}</span>
+                    </div>
+                    <button onclick="deleteBanner(${index})" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:bold;">O'chirish</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteBanner(index) {
+            if(confirm("Haqiqatan ham ushbu bannerni o'chirib tashlamoqchimisiz?")) {
+                banners.splice(index, 1);
+                if(window.saveBannersToFirebase) {
+                    window.saveBannersToFirebase(banners);
+                }
+                renderBanners();
+                renderAdminBannersList();
+            }
         }
 
         function renderProducts() {
@@ -709,6 +746,7 @@
 
             document.getElementById('bannerImagesInput').value = '';
             renderBanners();
+            renderAdminBannersList();
             alert("Bannerlar muvaffaqiyatli qo'shildi!");
         }
     </script>
@@ -739,6 +777,10 @@
               banners = [];
           }
           renderBanners();
+          const adminScreen = document.getElementById('adminScreen');
+          if(currentUser && currentUser.role === 'admin' && adminScreen && adminScreen.style.display === 'block') {
+              renderAdminBannersList();
+          }
       });
 
       onValue(ref(db, 'products'), (snapshot) => {
@@ -768,6 +810,10 @@
 
       window.deleteProductFromFirebase = function(productId) {
           remove(ref(db, 'products/' + productId));
+      };
+
+      window.saveBannersListToFirebase = function(banList) {
+          set(ref(db, 'banners'), banList);
       };
 
       window.saveBannersToFirebase = function(banList) {
