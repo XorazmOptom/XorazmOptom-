@@ -39,7 +39,7 @@
         .qty-input { width: 30px; text-align: center; border: none; background: transparent; font-size: 12px; font-weight: bold; }
 
         /* Bottom Navigation */
-        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 100; display: none; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 100; display: none; }
         .nav-item { font-size: 11px; color: #777; cursor: pointer; font-weight: 500; text-align: center; }
         .nav-item.active { color: #7f00ff; font-weight: bold; }
         
@@ -93,7 +93,7 @@
             </div>
         </div>
 
-        <!-- 4. ADMIN PANEL (Tovarlar va Bannerlar) -->
+        <!-- 4. ADMIN PANEL -->
         <div id="adminScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
                 <h3>Yangi tovar qo'shish</h3>
@@ -115,7 +115,7 @@
             <button class="btn" onclick="logout()" style="background: #dc2626; margin-bottom: 20px;">Tizimdan chiqish</button>
         </div>
 
-        <!-- 5. ADMIN STATS SCREEN (Reyting va Tarix) -->
+        <!-- 5. ADMIN STATS SCREEN -->
         <div id="adminStatsScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
                 <h3>Xaridorlar reytingi</h3>
@@ -132,9 +132,7 @@
     </div>
 
     <!-- Bottom Navigation Bar -->
-    <div class="nav-bar" id="mainNavBar">
-        <!-- Dinamik ravishda xaridor yoki admin menyusi chiqadi -->
-    </div>
+    <div class="nav-bar" id="mainNavBar"></div>
 
     <script>
         let products = [];
@@ -190,7 +188,7 @@
         function setupNavigation() {
             const navBar = document.getElementById('mainNavBar');
             navBar.style.display = 'flex';
-            if (currentUser.role === 'admin') {
+            if (currentUser && currentUser.role === 'admin') {
                 navBar.innerHTML = `
                     <div class="nav-item active" onclick="switchTab('catalog')">Katalog</div>
                     <div class="nav-item" onclick="switchTab('admin')">Tovar & Banner</div>
@@ -315,7 +313,7 @@
             });
 
             if (!hasItems) {
-                list.innerHTML = '<p style="color:#777; text-align:center;">Savatchangiz bo'sh</p>';
+                list.innerHTML = '<p style="color:#777; text-align:center;">Savatchangiz bo\'sh</p>';
                 totalBox.innerHTML = '';
             } else {
                 list.innerHTML = html;
@@ -590,11 +588,17 @@
       window.addEventListener('DOMContentLoaded', () => {
           const savedUser = localStorage.getItem('currentUser');
           if(savedUser) {
-              currentUser = JSON.parse(savedUser);
-              setupNavigation();
-              document.getElementById('authScreen').style.display = 'none';
-              document.getElementById('headerUserBadge').innerText = currentUser.name === 'Admin' ? 'Admin' : currentUser.name;
-              switchTab('catalog');
+              try {
+                  currentUser = JSON.parse(savedUser);
+                  if(currentUser && currentUser.role) {
+                      setupNavigation();
+                      document.getElementById('authScreen').style.display = 'none';
+                      document.getElementById('headerUserBadge').innerText = currentUser.role === 'admin' ? 'Admin' : currentUser.name;
+                      switchTab('catalog');
+                  }
+              } catch(e) {
+                  localStorage.removeItem('currentUser');
+              }
           }
       });
     </script>
