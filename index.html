@@ -23,10 +23,10 @@
         .btn-main { width: 100%; background: #1e3c72; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 8px; }
 
         /* Banner Carousel */
-        .carousel-container { position: relative; width: 100%; height: 160px; border-radius: 14px; overflow: hidden; margin-bottom: 14px; background: #1e3c72; }
+        .carousel-container { position: relative; width: 100%; height: 160px; border-radius: 14px; overflow: hidden; margin-bottom: 14px; background: #1e3c72; touch-action: pan-y; }
         .carousel-slide { display: none; width: 100%; height: 100%; position: relative; }
         .carousel-slide.active { display: block; }
-        .carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
+        .carousel-slide img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 
         .cat-scroll { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 4px; }
         .cat-chip { background: white; border: 1px solid #d1d5db; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; color: #4b5563; white-space: nowrap; cursor: pointer; }
@@ -41,7 +41,8 @@
         .card-content { padding: 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
         .card-title { font-size: 13px; font-weight: 700; color: #111827; cursor: pointer; }
         .card-desc { font-size: 10px; color: #6b7280; margin: 4px 0; }
-        .card-price { font-size: 14px; font-weight: 800; color: #059669; margin-bottom: 8px; }
+        .card-price { font-size: 14px; font-weight: 800; color: #059669; margin-bottom: 2px; }
+        .card-opt-info { font-size: 9px; color: #2563eb; margin-bottom: 6px; font-weight: 600; }
         .btn-del { position: absolute; top: 6px; right: 6px; background: #ef4444; color: white; border: none; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; cursor: pointer; z-index: 10; font-weight: bold; }
 
         /* Quantity Controls */
@@ -51,7 +52,7 @@
 
         /* Nav & Cart Bars */
         .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #e5e7eb; z-index: 100; }
-        .nav-item { text-align: center; font-size: 11px; color: #6b7280; cursor: pointer; width: 33%; }
+        .nav-item { text-align: center; font-size: 11px; color: #6b7280; cursor: pointer; width: 33.33%; }
         .nav-item.active { color: #1e3c72; font-weight: bold; }
 
         .cart-bar { position: fixed; bottom: 50px; left: 0; right: 0; background: #ffffff; padding: 10px 16px; box-shadow: 0 -4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; z-index: 99; cursor: pointer; }
@@ -63,6 +64,7 @@
         .status-kutilmoqda { background: #fef3c7; color: #d97706; }
         .status-yigilmoqda { background: #dbeafe; color: #2563eb; }
         .status-yetkazildi { background: #d1fae5; color: #059669; }
+        .status-bekor { background: #fee2e2; color: #ef4444; }
 
         /* Admin & Banner Manage Styles */
         .admin-section { background: white; padding: 16px; border-radius: 12px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
@@ -118,16 +120,21 @@
 
         <!-- КАТАЛОГ -->
         <div id="shopScreen" style="display:none;">
-            <!-- Динамик Карусель Баннер -->
             <div class="carousel-container" id="carouselBox"></div>
-
             <div class="cat-scroll" id="categoryBar"></div>
             <div class="grid" id="productList"></div>
         </div>
 
-        <!-- АДМИН ПАНЕЛ -->
+        <!-- АДМИН ПАНЕЛ (РЕЙТИНГ ВА БОШҚАРУВ БУ YERDA) -->
         <div id="adminScreen" style="display:none;">
             
+            <!-- ФАOL ХАРИДОРЛАР ВА СОВҒАLAR РЕЙТИНГИ (ФАҚАТ АДМИН УЧУН) -->
+            <div class="admin-section">
+                <div class="admin-sec-title">🏆 Энг кўп савдо қилган харидорлар рейтинги (Sovg'alar uchun)</div>
+                <div style="font-size:12px; color:#4b5563; margin-bottom:10px;">Бу рўйхат харидорларга кўринмайdi. Қaysi дўкон кўп харид қилгани сумма бўйича автоматик саraladi:</div>
+                <div id="adminBuyerRatingList"></div>
+            </div>
+
             <!-- РЕКЛАМА БАННЕРЛАРИНИ БОШҚАРИШ -->
             <div class="admin-section">
                 <div class="admin-sec-title">📢 Реклама карусель баннерларини бошқариш</div>
@@ -136,15 +143,19 @@
                     <label class="file-label" for="bannerFileInput">🖼️ Галереядан баннер суратини юклаш</label>
                     <input type="file" id="bannerFileInput" class="file-input" accept="image/*" onchange="uploadBannerImage(this)">
                 </div>
-                <div style="font-size:12px; font-weight:bold; margin-top:10px; color:#4b5563;">Мaвжуд баннерлар:</div>
+                <div style="font-size:12px; font-weight:bold; margin-top:10px; color:#4b5563;">Мавжуд баннерлар:</div>
                 <div class="banner-admin-list" id="adminBannerList"></div>
             </div>
 
             <!-- МАҲСУЛОТ ҚЎШИШ -->
             <div class="admin-section">
-                <div class="admin-sec-title">➕ Янги маҳсулот қўшиш</div>
+                <div class="admin-sec-title">➕ Янги маҳсулот ва оптом нархлар қўшиш</div>
                 <div class="form-group"><input type="text" class="form-input" id="newTitle" placeholder="Маҳсулот номи"></div>
-                <div class="form-group"><input type="number" class="form-input" id="newPrice" placeholder="Нархи (сўмда)"></div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px;">
+                    <div class="form-group"><input type="number" class="form-input" id="price1" placeholder="1 dona (сўм)"></div>
+                    <div class="form-group"><input type="number" class="form-input" id="price5" placeholder="5 dona+ (сўм)"></div>
+                    <div class="form-group"><input type="number" class="form-input" id="price10" placeholder="10 dona+ (сўм)"></div>
+                </div>
                 <div class="form-group">
                     <select class="form-select" id="newCat">
                         <option value="Маиший кимё">Маиший кимё</option>
@@ -169,7 +180,7 @@
 
             <!-- БУЮРТМАЛАР -->
             <div class="admin-section">
-                <div class="admin-sec-title">📦 Дўкончилардан тушган буюртмалар</div>
+                <div class="admin-sec-title">📦 Дўкончилардан тушган буюртмалар ва тарих</div>
                 <div id="adminOrdersList"></div>
             </div>
         </div>
@@ -181,7 +192,7 @@
         </div>
     </div>
 
-    <!-- ТОВАР МАТНИ МОДАЛ ОЙНАСИ -->
+    <!-- ТОВАР МОДАЛ ОЙНАСИ -->
     <div class="modal" id="productModal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeModal('productModal')">&times;</span>
@@ -190,7 +201,8 @@
             
             <div class="modal-gallery" id="modalGallery"></div>
 
-            <div style="font-size:18px; font-weight:800; color:#059669; margin-bottom:10px;" id="modalPrice"></div>
+            <div style="font-size:18px; font-weight:800; color:#059669; margin-bottom:4px;" id="modalPrice"></div>
+            <div style="font-size:11px; color:#2563eb; font-weight:bold; margin-bottom:10px;" id="modalOptNotice"></div>
             <div style="font-size:13px; color:#374151; line-height:1.5; background:#f9fafb; padding:12px; border-radius:10px; border:1px solid #e5e7eb; margin-bottom:15px;" id="modalDesc"></div>
 
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -230,11 +242,11 @@
         <button class="btn-order" onclick="event.stopPropagation(); openCartModal();">Саватни очиш</button>
     </div>
 
-    <!-- Навигация -->
+    <!-- Навигация (Хaridorlar uchun faqat 3 ta bo'lim: Katalog, Kabinet va Admin) -->
     <div class="nav-bar" id="navBar" style="display:none;">
         <div class="nav-item active" id="navCatalog" onclick="switchTab('catalog')">🛒 Каталог</div>
         <div class="nav-item" id="navUserCabinet" onclick="switchTab('cabinet')">👤 Кабинет</div>
-        <div class="nav-item" id="navAdmin" style="display:none; color:#ef4444;" onclick="switchTab('admin')">⚙️ Админ Панель</div>
+        <div class="nav-item" id="navAdmin" style="display:none; color:#ef4444;" onclick="switchTab('admin')">⚙️ Админ</div>
     </div>
 
     <script>
@@ -249,8 +261,8 @@
         ];
 
         let defaultProducts = [
-            { id: 1, category: "Маиший кимё", title: "Shengbolan Кир ювиш воситаси", desc: "3000 ml. Махсус B2B формула, доғларни лаҳзада кетказади.", price: 53000, images: ["https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=500&q=80"] },
-            { id: 2, category: "Маиший кимё", title: "Shengbolan AIX Тозаловчи", desc: "1200 ml. Ошхона ва кафель тозалагич.", price: 18000, images: ["https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=500&q=80"] }
+            { id: 1, category: "Маиший кимё", title: "Shengbolan Кир ювиш воситаси", desc: "3000 ml. Махсус B2B формула.", p1: 53000, p5: 50000, p10: 47000, images: ["https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=500&q=80"] },
+            { id: 2, category: "Маиший кимё", title: "Shengbolan AIX Тозаловчи", desc: "1200 ml. Ошхона тозалагич.", p1: 18000, p5: 17000, p10: 16000, images: ["https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=500&q=80"] }
         ];
 
         let banners = JSON.parse(localStorage.getItem('xorazm_banners')) || defaultBanners;
@@ -262,6 +274,9 @@
         let cart = {};
         let bannerSlideIndex = 0;
         let bannerTimer = null;
+
+        let touchStartX = 0;
+        let touchEndX = 0;
 
         window.onload = function() {
             if (currentUser) {
@@ -336,13 +351,15 @@
                         allOrders = firebaseOrders;
                         saveToStorage();
                         renderUserOrders();
-                        if (isAdmin) renderAdminOrders();
+                        if (isAdmin) {
+                            renderAdminOrders();
+                            renderAdminBuyerRating();
+                        }
                     }
                 });
             }
         }
 
-        /* BANNER MANAGEMENT */
         function renderBanners() {
             const container = document.getElementById('carouselBox');
             if(banners.length === 0) {
@@ -356,19 +373,32 @@
                 </div>
             `).join('');
 
+            container.ontouchstart = e => { touchStartX = e.changedTouches[0].screenX; };
+            container.ontouchend = e => { 
+                touchEndX = e.changedTouches[0].screenX;
+                handleBannerSwipe();
+            };
+
+            startBannerAutoSlide();
+        }
+
+        function handleBannerSwipe() {
+            if (touchEndX < touchStartX - 50) changeSlide(1);
+            if (touchEndX > touchStartX + 50) changeSlide(-1);
+        }
+
+        function changeSlide(direction) {
+            const slides = document.querySelectorAll('.carousel-slide');
+            if(slides.length <= 1) return;
+            slides[bannerSlideIndex].classList.remove('active');
+            bannerSlideIndex = (bannerSlideIndex + direction + slides.length) % slides.length;
+            slides[bannerSlideIndex].classList.add('active');
             startBannerAutoSlide();
         }
 
         function startBannerAutoSlide() {
             if(bannerTimer) clearInterval(bannerTimer);
-            bannerTimer = setInterval(() => {
-                const slides = document.querySelectorAll('.carousel-slide');
-                if(slides.length > 1) {
-                    slides[bannerSlideIndex].classList.remove('active');
-                    bannerSlideIndex = (bannerSlideIndex + 1) % slides.length;
-                    slides[bannerSlideIndex].classList.add('active');
-                }
-            }, 3500);
+            bannerTimer = setInterval(() => { changeSlide(1); }, 4000);
         }
 
         function uploadBannerImage(input) {
@@ -409,7 +439,12 @@
             `).join('');
         }
 
-        /* CATEGORIES & PRODUCTS */
+        function getProductPrice(p, qty) {
+            if (qty >= 10 && p.p10) return p.p10;
+            if (qty >= 5 && p.p5) return p.p5;
+            return p.p1 || p.price || 0;
+        }
+
         function renderCategories() {
             const bar = document.getElementById('categoryBar');
             bar.innerHTML = categories.map(c => `
@@ -434,9 +469,11 @@
 
             container.innerHTML = filtered.map(p => {
                 const qty = cart[p.id] || 0;
+                const currentPrice = getProductPrice(p, qty || 1);
                 const coverImg = p.images && p.images.length > 0 ? p.images[0] : 'https://via.placeholder.com/150';
                 const imgBadge = p.images && p.images.length > 1 ? `<div class="img-count-badge">📷 ${p.images.length}</div>` : '';
                 const delBtn = isAdmin ? `<button class="btn-del" onclick="deleteProduct(${p.id})">✕</button>` : '';
+                const optText = p.p5 ? `Optom: 5+ (${p.p5.toLocaleString()}), 10+ (${p.p10.toLocaleString()})` : '';
 
                 return `
                 <div class="card">
@@ -451,7 +488,8 @@
                             <div class="card-desc">${p.desc.substring(0, 35)}...</div>
                         </div>
                         <div>
-                            <div class="card-price">${p.price.toLocaleString()} сўм</div>
+                            <div class="card-price">${currentPrice.toLocaleString()} сўм</div>
+                            <div class="card-opt-info">${optText}</div>
                             <div class="qty-controls">
                                 <button class="btn-qty" onclick="changeQty(${p.id}, -1)">-</button>
                                 <input type="number" class="input-qty" id="qty_${p.id}" value="${qty}" min="0" onchange="manualInput(${p.id}, this.value)">
@@ -472,7 +510,8 @@
                 if(cart[id] > 0) {
                     const p = products.find(prod => prod.id == id);
                     if(p) {
-                        const itemTotal = cart[id] * p.price;
+                        const unitPrice = getProductPrice(p, cart[id]);
+                        const itemTotal = cart[id] * unitPrice;
                         total += itemTotal;
                         const img = p.images && p.images.length > 0 ? p.images[0] : 'https://via.placeholder.com/150';
 
@@ -482,7 +521,7 @@
                                 <img src="${img}">
                                 <div>
                                     <div style="font-size:13px; font-weight:bold;">${p.title}</div>
-                                    <div style="font-size:12px; color:#059669; font-weight:bold;">${p.price.toLocaleString()} сўм</div>
+                                    <div style="font-size:12px; color:#059669; font-weight:bold;">${unitPrice.toLocaleString()} сўм/dona (${cart[id]} ta)</div>
                                 </div>
                             </div>
                             <div style="display:flex; align-items:center; gap:8px;">
@@ -517,7 +556,8 @@
 
             document.getElementById('modalTitle').innerText = p.title;
             document.getElementById('modalCat').innerText = p.category;
-            document.getElementById('modalPrice').innerText = p.price.toLocaleString() + ' сўм';
+            document.getElementById('modalPrice').innerText = (p.p1 || p.price).toLocaleString() + ' сўм (1 dona)';
+            document.getElementById('modalOptNotice').innerText = p.p5 ? `💡 5tadan ko'p: ${p.p5.toLocaleString()} | 10tadan ko'p: ${p.p10.toLocaleString()}` : '';
             document.getElementById('modalDesc').innerText = p.desc;
             document.getElementById('modalQtyInput').value = cart[p.id] || 0;
 
@@ -546,11 +586,13 @@
             cart[id] = Math.max(0, (cart[id] || 0) + delta);
             const el = document.getElementById(`qty_${id}`);
             if(el) el.value = cart[id];
+            renderProducts();
             updateTotal();
         }
 
         function manualInput(id, val) {
             cart[id] = Math.max(0, parseInt(val) || 0);
+            renderProducts();
             updateTotal();
         }
 
@@ -558,7 +600,7 @@
             let total = 0;
             for(let id in cart) {
                 const p = products.find(prod => prod.id == id);
-                if(p) total += cart[id] * p.price;
+                if(p) total += cart[id] * getProductPrice(p, cart[id]);
             }
             document.getElementById('cartTotal').innerText = total.toLocaleString() + ' сўм';
         }
@@ -584,12 +626,14 @@
 
         function addProduct() {
             const title = document.getElementById('newTitle').value.trim();
-            const price = parseInt(document.getElementById('newPrice').value);
+            const p1 = parseInt(document.getElementById('price1').value);
+            const p5 = parseInt(document.getElementById('price5').value) || p1;
+            const p10 = parseInt(document.getElementById('price10').value) || p5;
             const cat = document.getElementById('newCat').value;
             const desc = document.getElementById('newDesc').value.trim();
 
-            if(!title || !price || tempMultipleImages.length === 0) { 
-                alert('Илтимос, номи, нархи ва камида 1 та сурат танланг!'); 
+            if(!title || !p1 || tempMultipleImages.length === 0) { 
+                alert('Илтимос, номи, 1-дона нархи ва камида 1 та сурат киритинг!'); 
                 return; 
             }
 
@@ -598,7 +642,9 @@
                 category: cat,
                 title: title,
                 desc: desc || "Маҳсулот ҳақида маълумот йўқ",
-                price: price,
+                p1: p1,
+                p5: p5,
+                p10: p10,
                 images: tempMultipleImages
             };
 
@@ -606,13 +652,15 @@
             saveToStorage();
 
             document.getElementById('newTitle').value = "";
-            document.getElementById('newPrice').value = "";
+            document.getElementById('price1').value = "";
+            document.getElementById('price5').value = "";
+            document.getElementById('price10').value = "";
             document.getElementById('newDesc').value = "";
             document.getElementById('newImgFiles').value = "";
             document.getElementById('filePreviewCount').innerText = "";
             tempMultipleImages = [];
 
-            alert('Маҳсулот қўшилди!');
+            alert('Маҳсулот оптом нархлари билан қўшилди!');
             renderProducts();
             switchTab('catalog');
         }
@@ -631,8 +679,9 @@
             for(let id in cart) {
                 if(cart[id] > 0) {
                     const p = products.find(prod => prod.id == id);
-                    items.push(`${p.title}: ${cart[id]} та`);
-                    total += cart[id] * p.price;
+                    const unitPrice = getProductPrice(p, cart[id]);
+                    items.push(`${p.title}: ${cart[id]} та (${unitPrice.toLocaleString()} сўмдан)`);
+                    total += cart[id] * unitPrice;
                 }
             }
             if(items.length === 0) { alert('Сават бўш!'); return; }
@@ -660,7 +709,7 @@
             closeModal('cartModal');
             renderProducts();
             updateTotal();
-            alert('Буюртмангиз қабул қилинди!');
+            alert('Буюртмангиз муваффақиятли қабул қилинди!');
             switchTab('cabinet');
         }
 
@@ -691,13 +740,53 @@
             if(tab === 'admin') {
                 renderAdminOrders();
                 renderAdminBannerList();
+                renderAdminBuyerRating();
             }
         }
 
         function getStatusBadgeHTML(status) {
             if(status === 'Yig\'ilmoqda') return '<span class="status-badge status-yigilmoqda">🚚 Йиғилмоқда / Йўлда</span>';
             if(status === 'Yetkazildi') return '<span class="status-badge status-yetkazildi">✅ Етказиб берилди</span>';
-            return '<span class="status-badge status-kutilmoqda">🟡 Кутилмоқда</span>';
+            if(status === 'Bekor qilindi') return '<span class="status-badge status-bekor">❌ Бекор қилинди</span>';
+            return '<span class="status-badge status-kutilmoqda">🟡 Кутилмоqda</span>';
+        }
+
+        function renderAdminBuyerRating() {
+            const container = document.getElementById('adminBuyerRatingList');
+            let stats = {};
+
+            // Hisob-kitob: Har bir xaridor bo'yicha jami savdo summasi va buyurtmalar soni
+            allOrders.forEach(o => {
+                if(o.phone && o.phone !== 'XorazmOptomAdmin' && o.status !== 'Bekor qilindi') {
+                    if(!stats[o.phone]) {
+                        stats[o.phone] = { name: o.user, phone: o.phone, totalSpent: 0, orderCount: 0 };
+                    }
+                    stats[o.phone].totalSpent += (o.total || 0);
+                    stats[o.phone].orderCount += 1;
+                }
+            });
+
+            let sortedBuyers = Object.values(stats).sort((a, b) => b.totalSpent - a.totalSpent);
+
+            if(sortedBuyers.length === 0) {
+                container.innerHTML = '<div style="color:#6b7280; font-size:13px;">Hozircha savdo qilgan xaridorlar mavjud emas</div>';
+                return;
+            }
+
+            container.innerHTML = sortedBuyers.map((b, index) => {
+                let medal = index === 0 ? '🥇 1-o‘rin' : index === 1 ? '🥈 2-o‘rin' : index === 2 ? '🥉 3-o‘rin' : `${index + 1}-o‘rin`;
+                return `
+                <div class="order-card" style="display:flex; justify-content:space-between; align-items:center; border-left: 4px solid ${index === 0 ? '#f59e0b' : '#1e3c72'};">
+                    <div>
+                        <div style="font-weight:bold; color:#1e3c72; font-size:14px;">${medal}: ${b.name}</div>
+                        <div style="font-size:11px; color:#6b7280;">Tel: ${b.phone} | Buyurtmalar: ${b.orderCount} ta</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:14px; font-weight:800; color:#059669;">${b.totalSpent.toLocaleString()} сўм</div>
+                        <div style="font-size:10px; color:#2563eb; font-weight:bold; margin-top:2px;">🎁 Sovg'aga munosib</div>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         function renderUserOrders() {
@@ -736,10 +825,11 @@
                     <div style="font-size:14px; font-weight:bold; color:#059669;">Жами: ${o.total.toLocaleString()} сўм</div>
                     
                     <div style="font-size:11px; font-weight:bold; margin-top:8px; color:#4b5563;">Статусни ўзгартириш:</div>
-                    <div style="display:flex; gap:6px; margin-top:6px;">
+                    <div style="display:flex; gap:4px; margin-top:6px; flex-wrap:wrap;">
                         <button style="font-size:10px; padding:4px 8px; border-radius:6px; border:1px solid #ccc; background:#fef3c7;" onclick="changeOrderStatus('${o.id}', 'Kutilmoqda')">🟡 Kutilmoqda</button>
                         <button style="font-size:10px; padding:4px 8px; border-radius:6px; border:1px solid #ccc; background:#dbeafe;" onclick="changeOrderStatus('${o.id}', 'Yig\'ilmoqda')">🚚 Yo'lda</button>
                         <button style="font-size:10px; padding:4px 8px; border-radius:6px; border:1px solid #ccc; background:#d1fae5;" onclick="changeOrderStatus('${o.id}', 'Yetkazildi')">✅ Yetkazildi</button>
+                        <button style="font-size:10px; padding:4px 8px; border-radius:6px; border:1px solid #ccc; background:#fee2e2; color:#ef4444;" onclick="changeOrderStatus('${o.id}', 'Bekor qilindi')">❌ Bekor qilish</button>
                     </div>
                 </div>
             `).join('');
@@ -792,4 +882,3 @@
     </script>
 </body>
 </html>
-                            
