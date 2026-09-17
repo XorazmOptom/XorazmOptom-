@@ -212,6 +212,7 @@
         let currentModalProductId = null;
         let currentZoomImages = [];
         let currentZoomIndex = 0;
+        let isInitialLoad = true; // Yangi qo'shildi: sahifa ochilganda darhol chiqib ketishining oldini olish uchun
 
         function handleLogin() {
             const name = document.getElementById('loginShopName').value.trim();
@@ -236,7 +237,7 @@
             currentUser = { role: 'buyer', name, phone };
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            // Xaridor ma'lumotlarini Firebasega saqlash/yangilash
+            // Xaridor ma'lumotlarini Firebasega saqlash
             if(window.saveCustomerToFirebase) {
                 window.saveCustomerToFirebase(phone, { name, phone, lastLogin: new Date().toLocaleString() });
             }
@@ -645,7 +646,6 @@
                 ordersDiv.innerHTML = ordersHtml;
             }
 
-            // Xaridorlar ro'yxatini ko'rsatish va ularni o'chirish (udalit qilish) qismi
             const customersDiv = document.getElementById('adminCustomersList');
             let custHtml = '';
             
@@ -655,7 +655,6 @@
                 let idx = 1;
                 for(let phone in customers) {
                     let cust = customers[phone];
-                    // Adminning o'zini xaridorlar ro'yxatiga chiqarmaslik uchun tekshiruv
                     if(phone === 'XorazmOptomAdmin') continue;
                     
                     custHtml += `
@@ -684,7 +683,7 @@
         }
 
         function deleteCustomer(phone) {
-            if(confirm("Ushbu xaridorni bazadan o'chirishni (udalit qilishni) xohlaysizmi? O'chirilsa u ilovaga kَرolmaydi.")) {
+            if(confirm("Ushbu xaridorni bazadan o'chirishni (udalit qilishni) xohlaysizmi?")) {
                 if(window.deleteCustomerFromFirebase) {
                     window.deleteCustomerFromFirebase(phone);
                 }
@@ -824,14 +823,15 @@
           }
       });
 
-      // Xaridorlar bazasini tinglash
+      // Xaridorlar bazasini tinglash (Xatolik tuzatildi)
       onValue(ref(db, 'customers'), (snapshot) => {
           const data = snapshot.val();
           customers = data || {};
           
-          // Agar joriy foydalanuvchi xaridor bo'lsa va uning raqami bazadan o'chirib yuborilgan (udalit qilingan) bo'lsa, uni avtomatik chiqarib yuborish
-          if(currentUser && currentUser.role === 'buyer') {
-              if(!customers[currentUser.phone]) {
+          // Dastlabki yuklanish (isInitialLoad) o'tib bo'lgandagina o'chirilganligini tekshiramiz
+          if(!isInitialLoad && currentUser && currentUser.role === 'buyer') {
+              const cleanPhone = currentUser.phone.replace(/[^0-9]/g, '');
+              if(!customers[cleanPhone] && !customers[currentUser.phone]) {
                   alert("Sizning akkauntingiz admin tomonidan o'chirib yuborildi!");
                   logout();
               }
@@ -848,9 +848,7 @@
       window.saveOrderToFirebase = (ord) => set(push(ref(db, 'orders')), ord);
       window.updateOrderStatusInFirebase = (orderId, newStatus) => update(ref(db, 'orders/' + orderId), { status: newStatus });
       
-      // Xaridorlarni saqlash va o'chirish funksiyalari
       window.saveCustomerToFirebase = (phone, custData) => {
-          // Telefon raqamidagi bo'sh joylar yoki maxsus belgilarni tozalab kalit qilamiz
           const cleanPhone = phone.replace(/[^0-9]/g, '');
           set(ref(db, 'customers/' + cleanPhone), custData);
       };
@@ -871,6 +869,11 @@
                   localStorage.removeItem('currentUser');
               }
           }
+          
+          // Ma'lumotlar bazadan birinchi marta o'qib bo'lingach, tekshiruvni yoqamiz
+          setTimeout(() => {
+              isInitialLoad = false;
+          }, 1500);
       });
     </script>
 </body>
