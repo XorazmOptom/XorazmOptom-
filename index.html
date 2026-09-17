@@ -143,7 +143,7 @@
                 
                 <label style="font-size:12px; color:#555; font-weight:bold;">Rasmlar (Fayl tanlang yoki URL havolalarini yozing):</label>
                 <input type="file" class="form-input" id="prodImagesInput" multiple accept="image/*" style="margin-top:5px;">
-                <textarea class="form-textarea" id="prodUrlsInput" placeholder="Yoki rasm URL havolalarini yozing (Har bir havola yangi qatordan, masalan: https://i.ibb.co/...)" rows="3"></textarea>
+                <textarea class="form-textarea" id="prodUrlsInput" placeholder="Yoki rasm URL havolalarini yozing (Har bir havola yangi qatordan)" rows="3"></textarea>
                 
                 <button class="btn" onclick="addNewProduct()">Tovarni qo'shish</button>
             </div>
@@ -170,7 +170,7 @@
             </div>
 
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Xaridorlar reytingi</h3>
+                <h3>Ro'yxatdan o'tgan xaridorlar</h3>
                 <div id="adminCustomersList" style="margin-top: 10px; font-size: 13px;"></div>
             </div>
             
@@ -204,6 +204,7 @@
         let products = [];
         let banners = [];
         let orders = {};
+        let customers = {};
         let cart = {}; 
         let autoSlideTimer = null;
         let currentUser = null;
@@ -234,6 +235,12 @@
 
             currentUser = { role: 'buyer', name, phone };
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Xaridor ma'lumotlarini Firebasega saqlash/yangilash
+            if(window.saveCustomerToFirebase) {
+                window.saveCustomerToFirebase(phone, { name, phone, lastLogin: new Date().toLocaleString() });
+            }
+
             setupNavigation();
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('headerUserBadge').innerText = currentUser.name;
@@ -610,23 +617,12 @@
         function renderAdminPanel() {
             const ordersDiv = document.getElementById('adminOrdersList');
             let ordersHtml = '';
-            let customersMap = {};
 
             if (!orders || Object.keys(orders).length === 0) {
                 ordersDiv.innerHTML = '<p style="color:#777;">Buyurtmalar mavjud emas</p>';
             } else {
                 for (let id in orders) {
                     let ord = orders[id];
-                    if(ord.clientPhone) {
-                        if(!customersMap[ord.clientPhone]) {
-                            customersMap[ord.clientPhone] = { name: ord.shopName, phone: ord.clientPhone, totalSpent: 0, orderCount: 0 };
-                        }
-                        if(ord.status === 'Yetkazildi') {
-                            customersMap[ord.clientPhone].totalSpent += Number(ord.total || 0);
-                        }
-                        customersMap[ord.clientPhone].orderCount += 1;
-                    }
-
                     let itemsHtml = (ord.items || []).map(i => `<div style="font-size:11px; color:#555;">- ${i.title} (${i.qty} dona)</div>`).join('');
 
                     ordersHtml += `
@@ -649,19 +645,29 @@
                 ordersDiv.innerHTML = ordersHtml;
             }
 
+            // Xaridorlar ro'yxatini ko'rsatish va ularni o'chirish (udalit qilish) qismi
             const customersDiv = document.getElementById('adminCustomersList');
             let custHtml = '';
-            let custArr = Object.values(customersMap).sort((a,b) => b.totalSpent - a.totalSpent);
-            if(custArr.length === 0) {
-                customersDiv.innerHTML = '<p style="color:#777;">Xaridorlar mavjud emas</p>';
+            
+            if(!customers || Object.keys(customers).length === 0) {
+                customersDiv.innerHTML = '<p style="color:#777;">Hozircha ro\'yxatdan o\'tgan xaridorlar yo\'q</p>';
             } else {
-                custArr.forEach((c, idx) => {
-                    custHtml += `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:5px 0;">
-                        <span><b>${idx+1}. ${c.name}</b> (${c.phone})</span>
-                        <span><b>${c.orderCount} ta buyurtma</b></span>
+                let idx = 1;
+                for(let phone in customers) {
+                    let cust = customers[phone];
+                    // Adminning o'zini xaridorlar ro'yxatiga chiqarmaslik uchun tekshiruv
+                    if(phone === 'XorazmOptomAdmin') continue;
+                    
+                    custHtml += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:8px 0; gap:10px;">
+                        <div>
+                            <b>${idx++}. ${cust.name || 'Noma\'lum'}</b><br>
+                            <span style="color:#555; font-size:11px;">Tel: ${cust.phone} | Oxirgi kirish: ${cust.lastLogin || 'Noma\'lum'}</span>
+                        </div>
+                        <button onclick="deleteCustomer('${phone}')" style="background:#ef4444; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:bold; white-space:nowrap;">Udalit qilish</button>
                     </div>`;
-                });
-                customersDiv.innerHTML = custHtml;
+                }
+                customersDiv.innerHTML = custHtml || '<p style="color:#777;">Xaridorlar mavjud emas</p>';
             }
         }
 
@@ -674,6 +680,14 @@
         function deleteProduct(productId) {
             if(confirm("Tovarni o'chirmoqchimisiz?")) {
                 if(window.deleteProductFromFirebase) window.deleteProductFromFirebase(productId);
+            }
+        }
+
+        function deleteCustomer(phone) {
+            if(confirm("Ushbu xaridorni bazadan o'chirishni (udalit qilishni) xohlaysizmi? O'chirilsa u ilovaga kَرolmaydi.")) {
+                if(window.deleteCustomerFromFirebase) {
+                    window.deleteCustomerFromFirebase(phone);
+                }
             }
         }
 
@@ -706,20 +720,18 @@
 
             let images = [];
             
-            // 1. Agar fayl tanlangan bo'lsa
             if(fileInput.files && fileInput.files.length > 0) {
                 let base64Imgs = await convertFilesToBase64(fileInput.files);
                 images = images.concat(base64Imgs);
             }
 
-            // 2. Agar URL havolalari yozilgan bo'lsa
             if(urlsText) {
                 let urlLines = urlsText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
                 images = images.concat(urlLines);
             }
 
             if(images.length === 0) {
-                alert('Itimtimos, rasm faylini tanlang yoki rasm URL manzilini kiriting!');
+                alert('Iltimos, rasm faylini tanlang yoki rasm URL manzilini kiriting!');
                 return;
             }
 
@@ -812,11 +824,37 @@
           }
       });
 
+      // Xaridorlar bazasini tinglash
+      onValue(ref(db, 'customers'), (snapshot) => {
+          const data = snapshot.val();
+          customers = data || {};
+          
+          // Agar joriy foydalanuvchi xaridor bo'lsa va uning raqami bazadan o'chirib yuborilgan (udalit qilingan) bo'lsa, uni avtomatik chiqarib yuborish
+          if(currentUser && currentUser.role === 'buyer') {
+              if(!customers[currentUser.phone]) {
+                  alert("Sizning akkauntingiz admin tomonidan o'chirib yuborildi!");
+                  logout();
+              }
+          }
+
+          if(currentUser && currentUser.role === 'admin' && document.getElementById('adminStatsScreen').style.display === 'block') {
+              renderAdminPanel();
+          }
+      });
+
       window.saveProductToFirebase = (prod) => set(push(ref(db, 'products')), prod);
       window.deleteProductFromFirebase = (productId) => remove(ref(db, 'products/' + productId));
       window.saveBannersToFirebase = (banList) => set(ref(db, 'banners'), banList);
       window.saveOrderToFirebase = (ord) => set(push(ref(db, 'orders')), ord);
       window.updateOrderStatusInFirebase = (orderId, newStatus) => update(ref(db, 'orders/' + orderId), { status: newStatus });
+      
+      // Xaridorlarni saqlash va o'chirish funksiyalari
+      window.saveCustomerToFirebase = (phone, custData) => {
+          // Telefon raqamidagi bo'sh joylar yoki maxsus belgilarni tozalab kalit qilamiz
+          const cleanPhone = phone.replace(/[^0-9]/g, '');
+          set(ref(db, 'customers/' + cleanPhone), custData);
+      };
+      window.deleteCustomerFromFirebase = (phone) => remove(ref(db, 'customers/' + phone));
 
       window.addEventListener('DOMContentLoaded', () => {
           const savedUser = localStorage.getItem('currentUser');
