@@ -67,7 +67,7 @@
         .modal-img-container { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; scrollbar-width: thin; }
         .modal-img-container img { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid #eee; cursor: pointer; transition: transform 0.2s; }
 
-        /* Fullscreen Image Zoom Modal with arrows */
+        /* Fullscreen Image Zoom Modal */
         .zoom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
         .zoom-modal img { max-width: 95%; max-height: 90vh; object-fit: contain; border-radius: 8px; }
         .zoom-nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; font-size: 24px; padding: 15px 12px; cursor: pointer; border-radius: 4px; z-index: 2001; }
@@ -165,7 +165,7 @@
         <!-- 5. ADMIN STATS & ORDERS SCREEN -->
         <div id="adminStatsScreen" style="display:none;">
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Kelib tushgan buyurtmalar</h3>
+                <h3>Kelib tushgan buyurtmalar (Eng yangilari tepada)</h3>
                 <div id="adminOrdersList" style="margin-top: 10px;"></div>
             </div>
 
@@ -212,7 +212,7 @@
         let currentModalProductId = null;
         let currentZoomImages = [];
         let currentZoomIndex = 0;
-        let isInitialLoad = true; // Yangi qo'shildi: sahifa ochilganda darhol chiqib ketishining oldini olish uchun
+        let isInitialLoad = true;
 
         function handleLogin() {
             const name = document.getElementById('loginShopName').value.trim();
@@ -237,7 +237,6 @@
             currentUser = { role: 'buyer', name, phone };
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            // Xaridor ma'lumotlarini Firebasega saqlash
             if(window.saveCustomerToFirebase) {
                 window.saveCustomerToFirebase(phone, { name, phone, lastLogin: new Date().toLocaleString() });
             }
@@ -569,7 +568,8 @@
                 items: orderItems,
                 total: grandTotal,
                 status: "Buyurtma qabul qilindi",
-                date: new Date().toLocaleString()
+                date: new Date().toLocaleString(),
+                timestamp: Date.now() // Yangi buyurtmalarni tepada chiqarish uchun
             };
 
             if(window.saveOrderToFirebase) window.saveOrderToFirebase(newOrder);
@@ -582,11 +582,11 @@
         }
 
         function getStatusBadge(status) {
-            if(status === 'Buyurtma qabul qilindi') return '<span class="status-badge status-accepted">Qabul qilindi</span>';
-            if(status === "Yo'lda") return '<span class="status-badge status-shipping">Yo\'lda</span>';
+            if(status === 'Buyurtma qabul qilindi' || status === 'Qabul qilindi') return '<span class="status-badge status-accepted">Qabul qilindi</span>';
+            if(status === "Yo'lda" || status === 'Yolda') return '<span class="status-badge status-shipping">Yo\'lda</span>';
             if(status === 'Yetkazildi') return '<span class="status-badge status-delivered">Yetkazildi</span>';
             if(status === 'Bekor qilindi') return '<span class="status-badge status-cancelled">Bekor qilindi</span>';
-            return `<span class="status-badge status-accepted">${status}</span>`;
+            return `<span class="status-badge status-accepted">${status || 'Qabul qilindi'}</span>`;
         }
 
         function renderMyOrders() {
@@ -595,17 +595,26 @@
             let html = '';
             let found = false;
 
-            for(let id in orders) {
+            // Saralash: Eng yangi buyurtmalar yuqorida
+            let orderKeys = Object.keys(orders).sort((a, b) => {
+                let tA = orders[a].timestamp || 0;
+                let tB = orders[b].timestamp || 0;
+                return tB - tA;
+            });
+
+            for(let id of orderKeys) {
                 let ord = orders[id];
+                if(!ord || !ord.shopName) continue; // Buzilgan ma'lumotlarni o'tkazib yuborish
+                
                 if(ord.clientPhone === currentUser.phone) {
                     found = true;
-                    let itemsHtml = (ord.items || []).map(i => `<div style="font-size:12px; color:#555;">- ${i.title} (${i.qty} dona) — ${Number(i.sum).toLocaleString()} so'm</div>`).join('');
+                    let itemsHtml = (ord.items || []).map(i => `<div style="font-size:12px; color:#555;">- ${i.title} (${i.qty} dona) — ${Number(i.sum || 0).toLocaleString()} so'm</div>`).join('');
 
                     html += `
                     <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px;">
-                        <div><b>Sana:</b> ${ord.date}</div>
+                        <div><b>Sana:</b> ${ord.date || 'Nomaqbul sana'}</div>
                         <div style="margin:5px 0;"><b>Tarkibi:</b><br>${itemsHtml}</div>
-                        <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} so'm</div>
+                        <div><b>Summa:</b> ${Number(ord.total || 0).toLocaleString()} so'm</div>
                         <div style="margin-top:5px;"><b>Holat:</b> ${getStatusBadge(ord.status)}</div>
                     </div>`;
                 }
@@ -622,28 +631,47 @@
             if (!orders || Object.keys(orders).length === 0) {
                 ordersDiv.innerHTML = '<p style="color:#777;">Buyurtmalar mavjud emas</p>';
             } else {
-                for (let id in orders) {
+                // Yangi buyurtmalar tepada chiqishi uchun timestamp bo'yicha teskari tartibda sort qilamiz
+                let sortedOrderKeys = Object.keys(orders).sort((a, b) => {
+                    let tA = orders[a].timestamp || 0;
+                    let tB = orders[b].timestamp || 0;
+                    return tB - tA;
+                });
+
+                let hasValidOrder = false;
+                for (let id of sortedOrderKeys) {
                     let ord = orders[id];
+                    // Eskirgan / undefined bo'lib qolgan noto'g'ri buyurtmalarni filtrlab tashlaymiz
+                    if (!ord || !ord.shopName || ord.shopName === 'undefined' || !ord.total || isNaN(ord.total)) {
+                        continue; 
+                    }
+                    hasValidOrder = true;
+
                     let itemsHtml = (ord.items || []).map(i => `<div style="font-size:11px; color:#555;">- ${i.title} (${i.qty} dona)</div>`).join('');
 
                     ordersHtml += `
                     <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:12px; background:#fafafa;">
-                        <div><b>Do'kon:</b> ${ord.shopName} (${ord.clientPhone})</div>
-                        <div><b>Sana:</b> ${ord.date}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <b>Do'kon:</b> ${ord.shopName} (${ord.clientPhone || 'Raqam yo\'q'})<br>
+                                <b>Sana:</b> ${ord.date || 'Sana yo\'q'}
+                            </div>
+                            <button onclick="deleteOrder('${id}')" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;">O'chirish</button>
+                        </div>
                         <div style="margin:4px 0;"><b>Tovarlar:</b>${itemsHtml}</div>
                         <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} so'm</div>
                         <div style="margin:6px 0; display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                             <b>Holat:</b> ${getStatusBadge(ord.status)}
                         </div>
                         <div style="display:flex; gap:4px; margin-top:8px; flex-wrap:wrap;">
-                            <button onclick="updateOrderStatus('${id}', 'Buyurtma qabul qilindi')" style="background:#3b82f6; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Qabul</button>
-                            <button onclick="updateOrderStatus('${id}', 'Yo\'lda')" style="background:#f59e0b; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Yo'lda</button>
-                            <button onclick="updateOrderStatus('${id}', 'Yetkazildi')" style="background:#10b981; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Yetkazildi</button>
-                            <button onclick="updateOrderStatus('${id}', 'Bekor qilindi')" style="background:#ef4444; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">Bekor</button>
+                            <button onclick="updateOrderStatus('${id}', 'Buyurtma qabul qilindi')" style="background:#3b82f6; color:white; border:none; padding:5px 8px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold;">Qabul</button>
+                            <button onclick="updateOrderStatus('${id}', 'Yo\'lda')" style="background:#f59e0b; color:white; border:none; padding:5px 8px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold;">Yo'lda</button>
+                            <button onclick="updateOrderStatus('${id}', 'Yetkazildi')" style="background:#10b981; color:white; border:none; padding:5px 8px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold;">Yetkazildi</button>
+                            <button onclick="updateOrderStatus('${id}', 'Bekor qilindi')" style="background:#ef4444; color:white; border:none; padding:5px 8px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold;">Bekor</button>
                         </div>
                     </div>`;
                 }
-                ordersDiv.innerHTML = ordersHtml;
+                ordersDiv.innerHTML = hasValidOrder ? ordersHtml : '<p style="color:#777;">Buyurtmalar mavjud emas</p>';
             }
 
             const customersDiv = document.getElementById('adminCustomersList');
@@ -676,6 +704,14 @@
             }
         }
 
+        function deleteOrder(orderId) {
+            if(confirm("Ushbu buyurtmani o'chirmoqchimisiz?")) {
+                if(window.deleteOrderFromFirebase) {
+                    window.deleteOrderFromFirebase(orderId);
+                }
+            }
+        }
+
         function deleteProduct(productId) {
             if(confirm("Tovarni o'chirmoqchimisiz?")) {
                 if(window.deleteProductFromFirebase) window.deleteProductFromFirebase(productId);
@@ -683,7 +719,7 @@
         }
 
         function deleteCustomer(phone) {
-            if(confirm("Ushbu xaridorni bazadan o'chirishni (udalit qilishni) xohlaysizmi?")) {
+            if(confirm("Ushbu xaridorni bazadan o'chirishni xohlaysizmi?")) {
                 if(window.deleteCustomerFromFirebase) {
                     window.deleteCustomerFromFirebase(phone);
                 }
@@ -823,12 +859,10 @@
           }
       });
 
-      // Xaridorlar bazasini tinglash (Xatolik tuzatildi)
       onValue(ref(db, 'customers'), (snapshot) => {
           const data = snapshot.val();
           customers = data || {};
           
-          // Dastlabki yuklanish (isInitialLoad) o'tib bo'lgandagina o'chirilganligini tekshiramiz
           if(!isInitialLoad && currentUser && currentUser.role === 'buyer') {
               const cleanPhone = currentUser.phone.replace(/[^0-9]/g, '');
               if(!customers[cleanPhone] && !customers[currentUser.phone]) {
@@ -847,6 +881,7 @@
       window.saveBannersToFirebase = (banList) => set(ref(db, 'banners'), banList);
       window.saveOrderToFirebase = (ord) => set(push(ref(db, 'orders')), ord);
       window.updateOrderStatusInFirebase = (orderId, newStatus) => update(ref(db, 'orders/' + orderId), { status: newStatus });
+      window.deleteOrderFromFirebase = (orderId) => remove(ref(db, 'orders/' + orderId));
       
       window.saveCustomerToFirebase = (phone, custData) => {
           const cleanPhone = phone.replace(/[^0-9]/g, '');
@@ -870,7 +905,6 @@
               }
           }
           
-          // Ma'lumotlar bazadan birinchi marta o'qib bo'lingach, tekshiruvni yoqamiz
           setTimeout(() => {
               isInitialLoad = false;
           }, 1500);
