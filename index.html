@@ -65,12 +65,34 @@
         .status-delivered { background: #10b981; }
         .status-cancelled { background: #ef4444; }
 
-        /* Modal Product Details */
+        /* Modal Product Details - Slayder uchun moslashtirildi */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 15px; }
         .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 12px; padding: 15px; max-height: 90vh; overflow-y: auto; position: relative; }
-        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; cursor: pointer; color: #777; }
-        .modal-img-container { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; scrollbar-width: thin; }
-        .modal-img-container img { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid #eee; cursor: pointer; transition: transform 0.2s; }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; cursor: pointer; color: #777; z-index: 10; }
+        
+        /* Barmoq bilan suriladigan (Swipe) rasm konteyneri */
+        .modal-img-container { 
+            display: flex; 
+            gap: 10px; 
+            overflow-x: auto; 
+            margin-bottom: 10px; 
+            padding-bottom: 8px; 
+            scroll-snap-type: x mandatory; 
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; 
+        }
+        .modal-img-container::-webkit-scrollbar { display: none; }
+        .modal-img-container img { 
+            width: 100%; 
+            max-width: 260px; 
+            height: 220px; 
+            object-fit: cover; 
+            border-radius: 8px; 
+            flex-shrink: 0; 
+            scroll-snap-align: center;
+            border: 1px solid #eee; 
+            cursor: pointer; 
+        }
 
         /* Fullscreen Image Zoom Modal */
         .zoom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
@@ -213,8 +235,8 @@
         let banners = [];
         let orders = {};
         let customers = {};
-        let cart = {}; // Key: "productId_variantName" yoki "productId"
-        let selectedVariants = {}; // Har bir tovar uchun aktiv tanlangan variant
+        let cart = {}; 
+        let selectedVariants = {}; 
         let autoSlideTimer = null;
         let currentUser = null;
         let activeCategory = 'Barchasi';
@@ -441,6 +463,7 @@
             document.getElementById('modalTitle').innerText = p.title;
             const imgContainer = document.getElementById('modalImages');
             if(p.images && p.images.length > 0) {
+                // Rasmlarni barmoq bilan siljitish (swipe) mumkin bo'lgan joylashuvda chiqarish
                 imgContainer.innerHTML = p.images.map(img => `<img src="${img}" onclick="openZoomModal('${img}')">`).join('');
             } else {
                 imgContainer.innerHTML = '<p style="color:#777; font-size:12px;">Rasmlar mavjud emas</p>';
