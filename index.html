@@ -39,6 +39,11 @@
         .card-price { font-size: 14px; color: #ff5722; font-weight: bold; margin-top: 4px; }
         .card-opt { font-size: 10px; color: #666; margin-top: 2px; }
 
+        /* Variant/Size Chips */
+        .variants-container { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+        .variant-chip { background: #f0f0f0; border: 1px solid #ccc; padding: 3px 8px; border-radius: 12px; font-size: 10px; cursor: pointer; color: #333; }
+        .variant-chip.selected { background: #7f00ff; color: #fff; border-color: #7f00ff; font-weight: bold; }
+
         /* Qty & Cart Controls */
         .qty-box { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; background: #f9f9f9; border-radius: 6px; padding: 2px; }
         .qty-btn { background: #fff; border: 1px solid #ddd; width: 26px; height: 26px; border-radius: 4px; font-weight: bold; cursor: pointer; color: #333; display: flex; align-items: center; justify-content: center; font-size: 14px; }
@@ -141,6 +146,8 @@
                 <input type="number" class="form-input" id="price5" placeholder="5 dona+ narxi">
                 <input type="number" class="form-input" id="price10" placeholder="10 dona+ narxi">
                 
+                <input type="text" class="form-input" id="prodVariants" placeholder="Ranglar yoki grammlar (masalan: 800gr, 1200gr yoki Qizil, Sariq)">
+                
                 <label style="font-size:12px; color:#555; font-weight:bold;">Rasmlar (Fayl tanlang yoki URL havolalarini yozing):</label>
                 <input type="file" class="form-input" id="prodImagesInput" multiple accept="image/*" style="margin-top:5px;">
                 <textarea class="form-textarea" id="prodUrlsInput" placeholder="Yoki rasm URL havolalarini yozing (Har bir havola yangi qatordan)" rows="3"></textarea>
@@ -185,6 +192,7 @@
             <h3 id="modalTitle" style="margin-bottom: 10px; font-size: 16px; padding-right: 20px;"></h3>
             <div class="modal-img-container" id="modalImages"></div>
             <div id="modalPrices" style="font-size: 14px; color: #333; line-height: 1.6; margin-bottom: 10px;"></div>
+            <div id="modalVariantSelection" style="margin-bottom: 10px;"></div>
             <div id="modalQtyContainer"></div>
         </div>
     </div>
@@ -205,7 +213,8 @@
         let banners = [];
         let orders = {};
         let customers = {};
-        let cart = {}; 
+        let cart = {}; // Key: "productId_variantName" yoki "productId"
+        let selectedVariants = {}; // Har bir tovar uchun aktiv tanlangan variant
         let autoSlideTimer = null;
         let currentUser = null;
         let activeCategory = 'Barchasi';
@@ -375,17 +384,29 @@
             }
 
             list.innerHTML = filtered.map(p => {
-                const qty = cart[p.id] || 0;
+                let variants = p.variants ? p.variants.split(',').map(v => v.trim()).filter(v => v.length > 0) : [];
+                let currentSelectedVar = selectedVariants[p.id] || (variants.length > 0 ? variants[0] : '');
+                let cartKey = variants.length > 0 ? `${p.id}_${currentSelectedVar}` : p.id;
+                const qty = cart[cartKey] || 0;
+                
                 const unitPrice = getProductPrice(p, qty > 0 ? qty : 1);
                 const totalSum = qty > 0 ? unitPrice * qty : unitPrice;
                 const optText = p.p5 ? `Optom: 5+ (${Number(p.p5).toLocaleString()} so'm)` : '';
                 const mainImg = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/80';
+
+                let variantsHtml = '';
+                if(variants.length > 0) {
+                    variantsHtml = `<div class="variants-container">` + variants.map(v => `
+                        <div class="variant-chip ${v === currentSelectedVar ? 'selected' : ''}" onclick="selectVariant(event, '${p.id}', '${v}')">${v}</div>
+                    `).join('') + `</div>`;
+                }
 
                 return `
                 <div class="card">
                     <div>
                         <img src="${mainImg}" onclick="openProductModal('${p.id}')">
                         <div class="card-title" onclick="openProductModal('${p.id}')">${p.title}</div>
+                        ${variantsHtml}
                         <div class="card-price">${totalSum.toLocaleString()} so'm</div>
                         <div style="font-size: 11px; color: #555;">${qty > 0 ? `${qty} dona` : `1 donasi: ${unitPrice.toLocaleString()} so'm`}</div>
                         <div class="card-opt">${optText}</div>
@@ -406,6 +427,12 @@
             }).join('');
         }
 
+        function selectVariant(event, productId, variantName) {
+            event.stopPropagation();
+            selectedVariants[productId] = variantName;
+            renderProducts();
+        }
+
         function openProductModal(id) {
             currentModalProductId = id;
             const p = products.find(item => item.id === id);
@@ -423,10 +450,28 @@
             priceInfo += `<b>1 dona narxi:</b> ${Number(p.p1 || 0).toLocaleString()} so'm<br>`;
             if(p.p5) priceInfo += `<b>5 dona+ narxi:</b> ${Number(p.p5).toLocaleString()} so'm<br>`;
             if(p.p10) priceInfo += `<b>10 dona+ narxi:</b> ${Number(p.p10).toLocaleString()} so'm`;
-
             document.getElementById('modalPrices').innerHTML = priceInfo;
+
+            let variants = p.variants ? p.variants.split(',').map(v => v.trim()).filter(v => v.length > 0) : [];
+            let modalVarContainer = document.getElementById('modalVariantSelection');
+            if(variants.length > 0) {
+                let currentSelectedVar = selectedVariants[p.id] || variants[0];
+                modalVarContainer.innerHTML = `<div style="font-size: 13px; font-weight: bold; margin-bottom: 4px; color: #444;">Variantni tanlang:</div>` +
+                    `<div class="variants-container">` + variants.map(v => `
+                        <div class="variant-chip ${v === currentSelectedVar ? 'selected' : ''}" onclick="selectModalVariant('${p.id}', '${v}')">${v}</div>
+                    `).join('') + `</div>`;
+            } else {
+                modalVarContainer.innerHTML = '';
+            }
+
             updateModalQtyView();
             document.getElementById('productModal').style.display = 'flex';
+        }
+
+        function selectModalVariant(productId, variantName) {
+            selectedVariants[productId] = variantName;
+            openProductModal(productId);
+            renderProducts();
         }
 
         function updateModalQtyView() {
@@ -434,8 +479,12 @@
             const p = products.find(item => item.id === currentModalProductId);
             if(!p) return;
 
+            let variants = p.variants ? p.variants.split(',').map(v => v.trim()).filter(v => v.length > 0) : [];
+            let currentSelectedVar = selectedVariants[p.id] || (variants.length > 0 ? variants[0] : '');
+            let cartKey = variants.length > 0 ? `${p.id}_${currentSelectedVar}` : p.id;
+
             const qtyContainer = document.getElementById('modalQtyContainer');
-            const qty = cart[currentModalProductId] || 0;
+            const qty = cart[cartKey] || 0;
             const effectiveQty = qty > 0 ? qty : 1;
             const unitPrice = getProductPrice(p, effectiveQty);
             const totalSum = unitPrice * effectiveQty;
@@ -449,11 +498,46 @@
                 </div>
                 <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #444;">Miqdor:</div>
                 <div class="qty-box" style="padding: 6px;">
-                    <button class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="changeQty('${currentModalProductId}', -1); updateModalQtyView();">${qty <= 1 ? '🗑️' : '-'}</button>
-                    <input type="number" class="qty-input" style="font-size: 15px; width: 50px;" value="${qty}" min="0" onchange="manualQty('${currentModalProductId}', this.value); updateModalQtyView();">
-                    <button class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="changeQty('${currentModalProductId}', 1); updateModalQtyView();">+</button>
+                    <button class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="changeQtyFromModal('${p.id}', -1)">${qty <= 1 ? '🗑️' : '-'}</button>
+                    <input type="number" class="qty-input" style="font-size: 15px; width: 50px;" value="${qty}" min="0" onchange="manualQtyFromModal('${p.id}', this.value)">
+                    <button class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="changeQtyFromModal('${p.id}', 1)">+</button>
                 </div>
             `;
+        }
+
+        function changeQty(id, delta) {
+            const p = products.find(item => item.id === id);
+            if(!p) return;
+            let variants = p.variants ? p.variants.split(',').map(v => v.trim()).filter(v => v.length > 0) : [];
+            let currentSelectedVar = selectedVariants[id] || (variants.length > 0 ? variants[0] : '');
+            let cartKey = variants.length > 0 ? `${id}_${currentSelectedVar}` : id;
+
+            cart[cartKey] = Math.max(0, (cart[cartKey] || 0) + delta);
+            if(cart[cartKey] === 0) delete cart[cartKey];
+            renderProducts();
+        }
+
+        function changeQtyFromModal(id, delta) {
+            changeQty(id, delta);
+            updateModalQtyView();
+        }
+
+        function manualQty(id, val) {
+            const p = products.find(item => item.id === id);
+            if(!p) return;
+            let variants = p.variants ? p.variants.split(',').map(v => v.trim()).filter(v => v.length > 0) : [];
+            let currentSelectedVar = selectedVariants[id] || (variants.length > 0 ? variants[0] : '');
+            let cartKey = variants.length > 0 ? `${id}_${currentSelectedVar}` : id;
+
+            let parsed = parseInt(val) || 0;
+            if(parsed <= 0) delete cart[cartKey];
+            else cart[cartKey] = parsed;
+            renderProducts();
+        }
+
+        function manualQtyFromModal(id, val) {
+            manualQty(id, val);
+            updateModalQtyView();
         }
 
         function closeProductModal() {
@@ -487,21 +571,6 @@
             document.getElementById('imageZoomModal').style.display = 'none';
         }
 
-        function changeQty(id, delta) {
-            cart[id] = Math.max(0, (cart[id] || 0) + delta);
-            if(cart[id] === 0) delete cart[id];
-            renderProducts();
-            if(currentModalProductId === id) updateModalQtyView();
-        }
-
-        function manualQty(id, val) {
-            let parsed = parseInt(val) || 0;
-            if(parsed <= 0) delete cart[id];
-            else cart[id] = parsed;
-            renderProducts();
-            if(currentModalProductId === id) updateModalQtyView();
-        }
-
         function renderCart() {
             const list = document.getElementById('cartList');
             const totalBox = document.getElementById('cartTotal');
@@ -509,29 +578,37 @@
             let grandTotal = 0;
             let hasItems = false;
 
-            products.forEach(p => {
-                let qty = cart[p.id] || 0;
-                if (qty > 0) {
+            for(let cartKey in cart) {
+                let qty = cart[cartKey];
+                if(qty > 0) {
                     hasItems = true;
+                    let parts = cartKey.split('_');
+                    let pId = parts[0];
+                    let vName = parts.slice(1).join('_');
+
+                    let p = products.find(item => item.id === pId);
+                    if(!p) continue;
+
                     let price = getProductPrice(p, qty);
                     let sum = price * qty;
                     grandTotal += sum;
                     let mainImg = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/60';
+                    let variantDisplay = vName ? ` <span style="color:#7f00ff; font-weight:bold;">(${vName})</span>` : '';
 
                     html += `
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:8px; gap: 10px;">
                         <img src="${mainImg}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border:1px solid #eee;">
                         <div style="flex-grow: 1;">
-                            <b style="font-size: 13px; color:#222;">${p.title}</b><br>
+                            <b style="font-size: 13px; color:#222;">${p.title}</b>${variantDisplay}<br>
                             <span style="color:#777; font-size:11px;">${qty} dona × ${price.toLocaleString()} so'm</span>
                         </div>
                         <div style="text-align:right;">
                             <b style="font-size: 13px; color:#ff5722;">${sum.toLocaleString()} so'm</b><br>
-                            <span style="color:#ef4444; font-size:11px; cursor:pointer; font-weight: bold;" onclick="changeQty('${p.id}', -${qty})">O'chirish</span>
+                            <span style="color:#ef4444; font-size:11px; cursor:pointer; font-weight: bold;" onclick="removeFromCart('${cartKey}')">O'chirish</span>
                         </div>
                     </div>`;
                 }
-            });
+            }
 
             if (!hasItems) {
                 list.innerHTML = '<p style="color:#777; text-align:center; padding: 20px 0;">Savatchangiz bo\'sh</p>';
@@ -542,20 +619,39 @@
             }
         }
 
+        function removeFromCart(cartKey) {
+            delete cart[cartKey];
+            renderCart();
+            renderProducts();
+        }
+
         function submitOrder() {
             if(!currentUser) return;
             let orderItems = [];
             let grandTotal = 0;
 
-            products.forEach(p => {
-                let qty = cart[p.id] || 0;
-                if (qty > 0) {
+            for(let cartKey in cart) {
+                let qty = cart[cartKey];
+                if(qty > 0) {
+                    let parts = cartKey.split('_');
+                    let pId = parts[0];
+                    let vName = parts.slice(1).join('_');
+
+                    let p = products.find(item => item.id === pId);
+                    if(!p) continue;
+
                     let price = getProductPrice(p, qty);
                     let sum = price * qty;
                     grandTotal += sum;
-                    orderItems.push({ title: p.title, qty: qty, price: price, sum: sum });
+                    orderItems.push({ 
+                        title: p.title, 
+                        variant: vName || '', 
+                        qty: qty, 
+                        price: price, 
+                        sum: sum 
+                    });
                 }
-            });
+            }
 
             if (orderItems.length === 0) {
                 alert("Savatchada tovar yo'q!");
@@ -569,7 +665,7 @@
                 total: grandTotal,
                 status: "Buyurtma qabul qilindi",
                 date: new Date().toLocaleString(),
-                timestamp: Date.now() // Yangi buyurtmalarni tepada chiqarish uchun
+                timestamp: Date.now()
             };
 
             if(window.saveOrderToFirebase) window.saveOrderToFirebase(newOrder);
@@ -595,7 +691,6 @@
             let html = '';
             let found = false;
 
-            // Saralash: Eng yangi buyurtmalar yuqorida
             let orderKeys = Object.keys(orders).sort((a, b) => {
                 let tA = orders[a].timestamp || 0;
                 let tB = orders[b].timestamp || 0;
@@ -604,11 +699,14 @@
 
             for(let id of orderKeys) {
                 let ord = orders[id];
-                if(!ord || !ord.shopName) continue; // Buzilgan ma'lumotlarni o'tkazib yuborish
+                if(!ord || !ord.shopName) continue;
                 
                 if(ord.clientPhone === currentUser.phone) {
                     found = true;
-                    let itemsHtml = (ord.items || []).map(i => `<div style="font-size:12px; color:#555;">- ${i.title} (${i.qty} dona) — ${Number(i.sum || 0).toLocaleString()} so'm</div>`).join('');
+                    let itemsHtml = (ord.items || []).map(i => {
+                        let varText = i.variant ? ` (${i.variant})` : '';
+                        return `<div style="font-size:12px; color:#555;">- ${i.title}${varText} (${i.qty} dona) — ${Number(i.sum || 0).toLocaleString()} so'm</div>`;
+                    }).join('');
 
                     html += `
                     <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px;">
@@ -631,7 +729,6 @@
             if (!orders || Object.keys(orders).length === 0) {
                 ordersDiv.innerHTML = '<p style="color:#777;">Buyurtmalar mavjud emas</p>';
             } else {
-                // Yangi buyurtmalar tepada chiqishi uchun timestamp bo'yicha teskari tartibda sort qilamiz
                 let sortedOrderKeys = Object.keys(orders).sort((a, b) => {
                     let tA = orders[a].timestamp || 0;
                     let tB = orders[b].timestamp || 0;
@@ -641,13 +738,15 @@
                 let hasValidOrder = false;
                 for (let id of sortedOrderKeys) {
                     let ord = orders[id];
-                    // Eskirgan / undefined bo'lib qolgan noto'g'ri buyurtmalarni filtrlab tashlaymiz
                     if (!ord || !ord.shopName || ord.shopName === 'undefined' || !ord.total || isNaN(ord.total)) {
                         continue; 
                     }
                     hasValidOrder = true;
 
-                    let itemsHtml = (ord.items || []).map(i => `<div style="font-size:11px; color:#555;">- ${i.title} (${i.qty} dona)</div>`).join('');
+                    let itemsHtml = (ord.items || []).map(i => {
+                        let varText = i.variant ? ` (${i.variant})` : '';
+                        return `<div style="font-size:11px; color:#555;">- ${i.title}${varText} (${i.qty} dona) — ${Number(i.sum || 0).toLocaleString()} so'm</div>`;
+                    }).join('');
 
                     ordersHtml += `
                     <div style="border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; font-size:12px; background:#fafafa;">
@@ -659,7 +758,7 @@
                             <button onclick="deleteOrder('${id}')" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;">O'chirish</button>
                         </div>
                         <div style="margin:4px 0;"><b>Tovarlar:</b>${itemsHtml}</div>
-                        <div><b>Summa:</b> ${Number(ord.total).toLocaleString()} so'm</div>
+                        <div><b>Jami summa:</b> ${Number(ord.total).toLocaleString()} so'm</div>
                         <div style="margin:6px 0; display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                             <b>Holat:</b> ${getStatusBadge(ord.status)}
                         </div>
@@ -744,6 +843,7 @@
             let p1 = document.getElementById('price1').value.trim();
             let p5 = document.getElementById('price5').value.trim() || p1;
             let p10 = document.getElementById('price10').value.trim() || p5;
+            let variants = document.getElementById('prodVariants').value.trim();
             
             const fileInput = document.getElementById('prodImagesInput');
             const urlsText = document.getElementById('prodUrlsInput').value.trim();
@@ -771,13 +871,14 @@
             }
 
             if(window.saveProductToFirebase) {
-                window.saveProductToFirebase({ title, category, p1, p5, p10, images });
+                window.saveProductToFirebase({ title, category, p1, p5, p10, variants, images });
             }
 
             document.getElementById('prodTitle').value = '';
             document.getElementById('price1').value = '';
             document.getElementById('price5').value = '';
             document.getElementById('price10').value = '';
+            document.getElementById('prodVariants').value = '';
             document.getElementById('prodImagesInput').value = '';
             document.getElementById('prodUrlsInput').value = '';
             alert("Tovar qo'shildi!");
