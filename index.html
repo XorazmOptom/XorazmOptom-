@@ -198,7 +198,7 @@
             </div>
 
             <div style="background:white; padding:15px; border-radius:10px; margin-bottom: 10px;">
-                <h3>Ro'yxatdan o'tgan xaridorlar</h3>
+                <h3>Ro'yxatdan o'tgan xaridorlar va onlayn holati</h3>
                 <div id="adminCustomersList" style="margin-top: 10px; font-size: 13px;"></div>
             </div>
             
@@ -239,6 +239,18 @@
         let activeCategory = 'Barchasi';
         let currentModalProductId = null;
         let isInitialLoad = true;
+        let heartbeatInterval = null;
+
+        function updateActivity() {
+            if(currentUser && currentUser.role === 'buyer' && window.saveCustomerActivity) {
+                window.saveCustomerActivity(currentUser.phone, {
+                    name: currentUser.name,
+                    phone: currentUser.phone,
+                    lastActive: Date.now(),
+                    lastLoginText: new Date().toLocaleString()
+                });
+            }
+        }
 
         function handleLogin() {
             const name = document.getElementById('loginShopName').value.trim();
@@ -263,9 +275,9 @@
             currentUser = { role: 'buyer', name, phone };
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            if(window.saveCustomerToFirebase) {
-                window.saveCustomerToFirebase(phone, { name, phone, lastLogin: new Date().toLocaleString() });
-            }
+            updateActivity();
+            if(heartbeatInterval) clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(updateActivity, 30000); // Har 30 soniyada onlayn vaqtini yangilab turadi
 
             setupNavigation();
             document.getElementById('authScreen').style.display = 'none';
@@ -276,6 +288,7 @@
         function logout() {
             currentUser = null;
             localStorage.removeItem('currentUser');
+            if(heartbeatInterval) clearInterval(heartbeatInterval);
             document.getElementById('adminScreen').style.display = 'none';
             document.getElementById('adminStatsScreen').style.display = 'none';
             document.getElementById('catalogScreen').style.display = 'none';
@@ -732,9 +745,8 @@
                         <div><b>Sana:</b> ${ord.date || 'Nomaqbul sana'}</div>
                         <div style="margin:5px 0;"><b>Tarkibi:</b><br>${itemsHtml}</div>
                         <div><b>Summa:</b> ${Number(ord.total || 0).toLocaleString()} so'm</div>
-                        <div style="margin-top:5px; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="margin-top:5px;">
                             <span><b>Holat:</b> ${getStatusBadge(ord.status)}</span>
-                            ${ord.status === 'Buyurtma qabul qilindi' || ord.status === 'Qabul qilindi' ? `<button onclick="cancelMyOrder('${id}')" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;">Bekor qilish</button>` : ''}
                         </div>
                     </div>`;
                 }
@@ -742,14 +754,6 @@
 
             if(!found) list.innerHTML = '<p style="color:#777; text-align:center;">Buyurtmalar topilmadi</p>';
             else list.innerHTML = html;
-        }
-
-        function cancelMyOrder(orderId) {
-            if(confirm("Ushbu buyurtmani bekor qilishni xohlaysizmi?")) {
-                if(window.updateOrderStatusInFirebase) {
-                    window.updateOrderStatusInFirebase(orderId, 'Bekor qilindi');
-                }
-            }
         }
 
         function renderAdminPanel() {
@@ -810,15 +814,24 @@
                 customersDiv.innerHTML = '<p style="color:#777;">Hozircha ro\'yxatdan o\'tgan xaridorlar yo\'q</p>';
             } else {
                 let idx = 1;
+                const now = Date.now();
                 for(let phone in customers) {
                     let cust = customers[phone];
                     if(phone === 'XorazmOptomAdmin') continue;
                     
+                    let lastActiveTime = cust.lastActive || 0;
+                    let diffMinutes = (now - lastActiveTime) / 1000 / 60;
+                    let isOnline = diffMinutes < 2; // So'nggi 2 minut ichida harakat qilgan bo'lsa onlayn deb qaraladi
+
+                    let statusBadge = isOnline 
+                        ? `<span style="background:#10b981; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">🟢 Onlayn</span>` 
+                        : `<span style="background:#777; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">🔴 Oxirgi faollik: ${cust.lastLoginText || 'Noma\'lum'}</span>`;
+                    
                     custHtml += `
                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:8px 0; gap:10px;">
                         <div>
-                            <b>${idx++}. ${cust.name || 'Noma\'lum'}</b><br>
-                            <span style="color:#555; font-size:11px;">Tel: ${cust.phone} | Oxirgi kirish: ${cust.lastLogin || 'Noma\'lum'}</span>
+                            <b>${idx++}. ${cust.name || 'Noma\'lum'}</b> ${statusBadge}<br>
+                            <span style="color:#555; font-size:11px;">Tel: ${cust.phone}</span>
                         </div>
                         <button onclick="deleteCustomer('${phone}')" style="background:#ef4444; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:bold; white-space:nowrap;">Udalit qilish</button>
                     </div>`;
@@ -1014,9 +1027,9 @@
       window.updateOrderStatusInFirebase = (orderId, newStatus) => update(ref(db, 'orders/' + orderId), { status: newStatus });
       window.deleteOrderFromFirebase = (orderId) => remove(ref(db, 'orders/' + orderId));
       
-      window.saveCustomerToFirebase = (phone, custData) => {
+      window.saveCustomerActivity = (phone, custData) => {
           const cleanPhone = phone.replace(/[^0-9]/g, '');
-          set(ref(db, 'customers/' + cleanPhone), custData);
+          update(ref(db, 'customers/' + cleanPhone), custData);
       };
       window.deleteCustomerFromFirebase = (phone) => remove(ref(db, 'customers/' + phone));
 
@@ -1030,6 +1043,11 @@
                       document.getElementById('authScreen').style.display = 'none';
                       document.getElementById('headerUserBadge').innerText = currentUser.role === 'admin' ? 'Admin' : currentUser.name;
                       switchTab('catalog');
+                      if(currentUser.role === 'buyer') {
+                          updateActivity();
+                          if(heartbeatInterval) clearInterval(heartbeatInterval);
+                          heartbeatInterval = setInterval(updateActivity, 30000);
+                      }
                   }
               } catch(e) {
                   localStorage.removeItem('currentUser');
